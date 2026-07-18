@@ -1,0 +1,47 @@
+{
+  "_comentariu": "Sablon pentru Claude Desktop. Copiaza in %APPDATA%\\Claude\\claude_desktop_config.json. Inlocuieste <REPO> cu calea unde ai clonat acest repo si completeaza credentialele. NU pune parole reale intr-un fisier versionat.",
+  "mcpServers": {
+    "legal-verificator-ro": {
+      "command": "python",
+      "args": ["<REPO>\\mcp-servers\\legal-verificator-ro\\src\\legal_verificator\\server.py"],
+      "env": {
+        "LEGE6_EMAIL": "your-login@example.com",
+        "LEGE6_PASSWORD": "PAROLA_TA",
+        "LEGE5_EMAIL": "your-login@example.com",
+        "LEGE5_PASSWORD": "PAROLA_TA"
+      }
+    },
+    "eurlex": {
+      "command": "node",
+      "args": ["<REPO>\\mcp-servers\\legal-research-mcp\\servers\\eurlex-mcp-server\\dist\\index.js"]
+    },
+    "hudoc": {
+      "command": "node",
+      "args": ["<REPO>\\mcp-servers\\legal-research-mcp\\servers\\hudoc-mcp-server\\dist\\index.js"]
+    },
+    "zotero": {
+      "command": "node",
+      "args": ["<REPO>\\mcp-servers\\legal-research-mcp\\servers\\zotero-mcp-server\\dist\\index.js"],
+      "env": {
+        "ZOTERO_API_KEY": "CHEIA_TA_ZOTERO",
+        "ZOTERO_USER_ID": "ID_UL_TAU_ZOTERO"
+      }
+    },
+    "doctrine-verifier": {
+      "command": "python",
+      "args": ["<REPO>\\mcp-servers\\legal-research-mcp\\doctrine-verifier\\server.py"]
+    },
+    "semantic-scholar": {
+      "command": "python",
+      "args": ["<REPO>\\mcp-servers\\semantic-scholar-mcp\\server.py"]
+    },
+    "anti-ai-tone": {
+      "command": "python",
+      "args": ["<REPO>\\mcp-servers\\anti-ai-tone-mcp\\server.py"]
+    },
+    "cognee-legal": {
+      "command": "python",
+      "args": ["<REPO>\\mcp-servers\\cognee-mcp\\server.py"]
+    }
+  }
+}

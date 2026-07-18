@@ -1,0 +1,39 @@
+# Secrete si credentiale, NU se versioneaza niciodata
+.env
+*.env
+!*.env.example
+.credentials.json
+*credentials*.json
+config.json
+*.cookies
+.cookies/
+.session/
+*_secret*
+*token*
+
+# Configurari personale (folositi variantele .example)
+claude_desktop_config.json
+settings.json
+settings.local.json
+CLAUDE.md
+
+# Date generate / RAG / cache
+chroma-db/
+drive-docs/
+*.log
+__pycache__/
+*.pyc
+.citation_cache.json
+session_audit*.txt
+
+# Dependinte / build
+node_modules/
+dist/
+build/
+*.egg-info/
+.venv/
+venv/
+
+# Sistem
+.DS_Store
+Thumbs.db

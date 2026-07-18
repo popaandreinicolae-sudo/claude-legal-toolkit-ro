@@ -1,0 +1,29 @@
+{
+ "_doc": "Tabel de referinta pentru denumiri curente, acte UE abrogate si transpuneri corecte. Folosit de citation_core.py / citation_guard.py. Sursa: audit forensic 27 iunie 2026. Actualizeaza periodic.",
+ "outdated_names": {
+  "Ministerul Finantelor Publice": "Ministerul Finantelor (denumire schimbata din 2021)",
+  "Ministerul Finanțelor Publice": "Ministerul Finanțelor (denumire schimbata din 2021)",
+  "RADET": "CMTEB (Compania Municipala Termoenergetica Bucuresti, din 1 decembrie 2019)",
+  "E-Distributie": "Retele Electrice Romania S.A. (post-fuziune 2024)",
+  "Enel Distributie": "Retele Electrice Romania S.A. (post-fuziune 2024)"
+ },
+ "wrong_transpositions": {
+  "Legea 58/2019": "Legea 362/2018 (transpunerea NIS; NIS2 = Legea 362/2018 / OUG 155/2024 / Legea 58/2023 dupa caz - verifica actul exact)",
+  "Legea nr. 58/2019": "Legea 362/2018 (transpunere NIS - verifica actul exact aplicabil)"
+ },
+ "eu_abrogated": {
+  "2009/73/CE": {
+   "replaced_by": "Directiva (UE) 2024/1788 privind piata interna a gazelor din surse regenerabile, gazelor naturale si hidrogenului",
+   "note": "Directiva 2009/73/CE privind gazele naturale a fost abrogata prin pachetul de decarbonizare 2024"
+  },
+  "2009/72/CE": {
+   "replaced_by": "Directiva (UE) 2019/944 privind normele comune pentru piata interna de energie electrica",
+   "note": "Directiva 2009/72/CE privind energia electrica a fost abrogata prin Directiva 2019/944"
+  }
+ },
+ "known_good_examples": {
+  "_note": "Folosite la auto-test: un act real (Legea 47/1992 CCR) trebuie CONFIRMAT, un act inventat NEGASIT.",
+  "real_law": "Legea 47/1992",
+  "real_ccr_example": "Decizia 17/2015"
+ }
+}

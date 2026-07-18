@@ -1,0 +1,76 @@
+{
+  "manifest_version": "0.2",
+  "name": "anti-ai-tone",
+  "display_name": "Anti-AI Tone, Romana plus Engleza",
+  "version": "1.1.0",
+  "description": "Detecteaza si previne tonul artificial in texte profesionale romanesti si englezesti. Plus fact-check pentru documente cu cifre, denumiri institutionale, capitole inventate.",
+  "long_description": "Sistem complet anti-AI tone si anti-halucinare construit pe baza skill-ului v2.1 sintetizat din 15 surse internationale (Wikipedia Signs of AI Writing, MIT Press 2025, arXiv 2510.05136, UCC Stylometry Study, Pangram Labs, GPTZero, HumanizerTech, Patina, Conor Bronsdon, Will Francis, Plagiarism Today, Westcliff Writing Center, Blake Stockton, Washington Post, DOOM 3 Gramatica Academiei Romane). Acopera 25 reguli stricte plus lista neagra 200+ termeni RO si EN plus interdictie liniute apozitionale in romana. Tools expuse: check_ai_tone, quick_score, suggest_fixes, check_file, get_skill_rules, fact_check_document, compare_versions. Optimizat pentru documente juridice, academice, policy, energetic. Construit dupa analiza unor tipare tipice de halucinare (fonduri inventate, indicatori financiari fabricati, capitole goale generate ca slot fillers, denumiri institutionale depasite de tip generic, ex. Regia Alfa sau Compania Beta).",
+  "author": {
+    "name": "Andrei Nicolae Popa",
+    "email": "your-email@example.com"
+  },
+  "homepage": "https://github.com/popa-andrei-nicolae/anti-ai-tone-ro",
+  "documentation": "https://github.com/popa-andrei-nicolae/anti-ai-tone-ro/blob/main/README.md",
+  "license": "MIT",
+  "keywords": [
+    "anti-ai-tone",
+    "anti-hallucination",
+    "fact-check",
+    "romanian-language",
+    "legal-writing",
+    "academic-writing",
+    "DOOM-3",
+    "constitutional-law",
+    "energy-policy"
+  ],
+  "server": {
+    "type": "python",
+    "entry_point": "server.py",
+    "mcp_config": {
+      "command": "python",
+      "args": [
+        "${__dirname}/server.py"
+      ]
+    }
+  },
+  "tools": [
+    {
+      "name": "check_ai_tone",
+      "description": "Analiza completa anti-AI tone, scor 0-100, lista probleme detaliata"
+    },
+    {
+      "name": "quick_score",
+      "description": "Scor rapid naturalete 0-100"
+    },
+    {
+      "name": "suggest_fixes",
+      "description": "Lista concreta corectii prioritizate cu exemple"
+    },
+    {
+      "name": "check_file",
+      "description": "Analiza pe fisier existent .md, .txt, .docx"
+    },
+    {
+      "name": "get_skill_rules",
+      "description": "Returneaza continutul integral al regulilor v2.1"
+    },
+    {
+      "name": "fact_check_document",
+      "description": "Detectie halucinari, cifre fara sursa, capitole goale, denumiri depasite"
+    },
+    {
+      "name": "compare_versions",
+      "description": "Compara doua versiuni .docx, detecteaza diferente cantitative"
+    }
+  ],
+  "compatibility": {
+    "platforms": [
+      "darwin",
+      "win32",
+      "linux"
+    ],
+    "runtimes": {
+      "python": ">=3.10"
+    }
+  }
+}

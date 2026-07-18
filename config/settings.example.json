@@ -1,0 +1,70 @@
+{
+  "_comentariu": "Sablon pentru Claude Code. Copiaza in ~/.claude/settings.json. Inlocuieste <REPO> cu calea unde ai clonat repo-ul. Hook-urile ruleaza scripturile Python din folderul hooks/ la fiecare scriere/prompt/final de sesiune.",
+  "effortLevel": "high",
+  "env": {
+    "PYTHONIOENCODING": "utf-8",
+    "PYTHONUTF8": "1",
+    "MCP_TIMEOUT": "180000",
+    "MCP_TOOL_TIMEOUT": "120000"
+  },
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch",
+      "Bash(pip install:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(node:*)",
+      "Bash(python:*)",
+      "mcp__legal-verificator-ro__*",
+      "mcp__hudoc__*",
+      "mcp__eurlex__*",
+      "mcp__zotero__*",
+      "mcp__semantic-scholar__*",
+      "mcp__doctrine-verifier__*"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -c \"import docx, httpx, bs4, lxml\" 2>nul || pip install --quiet --disable-pip-version-check python-docx httpx beautifulsoup4 lxml 2>nul",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "python \"<REPO>/hooks/ai_tone_hook.py\"", "timeout": 25 },
+          { "type": "command", "command": "python \"<REPO>/hooks/fact_check_hook.py\"", "timeout": 25 },
+          { "type": "command", "command": "python \"<REPO>/hooks/citation_guard.py\"", "timeout": 22 },
+          { "type": "command", "command": "python \"<REPO>/hooks/phantom_source_guard.py\"", "timeout": 12 },
+          { "type": "command", "command": "python \"<REPO>/hooks/numeric_consistency_guard.py\"", "timeout": 12 }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          { "type": "command", "command": "python \"<REPO>/hooks/prompt_injection_hook.py\"", "timeout": 5 }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          { "type": "command", "command": "python \"<REPO>/hooks/session_end_hook.py\"", "timeout": 60 },
+          { "type": "command", "command": "python \"<REPO>/hooks/quality_gate_stop_hook.py\"", "timeout": 30 }
+        ]
+      }
+    ]
+  }
+}

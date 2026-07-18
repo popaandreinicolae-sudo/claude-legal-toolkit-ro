@@ -1,0 +1,12 @@
+{
+  "name": "legal-research-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm run build:eurlex && npm run build:hudoc && npm run build:zotero",
+    "build:eurlex": "cd servers/eurlex-mcp-server && npm run build",
+    "build:hudoc": "cd servers/hudoc-mcp-server && npm run build",
+    "build:zotero": "cd servers/zotero-mcp-server && npm run build",
+    "install:all": "cd servers/eurlex-mcp-server && npm install && cd ../hudoc-mcp-server && npm install && cd ../zotero-mcp-server && npm install"
+  }
+}
