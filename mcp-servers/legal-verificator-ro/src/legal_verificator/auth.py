@@ -126,6 +126,33 @@ class _IndacoSession:
         import json
         return json.loads(txt)
 
+    async def post_json(self, url: str, body: dict) -> dict:
+        """POST JSON autentificat din originea site-ului (executat in pagina logata)."""
+        page = await self._ensure_page()
+        txt = await page.evaluate(
+            """async ([u, b]) => {
+                // Aplicatiile Angular ataseaza X-XSRF-TOKEN din cookie la POST-uri;
+                // fara el serverul poate respinge cererea fara mesaj de eroare.
+                const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/);
+                const headers = {'Accept': 'application/json', 'Content-Type': 'application/json'};
+                if (m) headers['X-XSRF-TOKEN'] = decodeURIComponent(m[1]);
+                const r = await fetch(u, {
+                    method: 'POST',
+                    headers,
+                    credentials: 'include',
+                    body: JSON.stringify(b),
+                });
+                return await r.text();
+            }""",
+            [url, body],
+        )
+        import json
+        # Corp gol = "niciun rezultat" pentru API-urile de cautare (sintact intoarce
+        # 200 cu body vid cand nu exista potrivire), nu o eroare de parsare.
+        if not (txt or "").strip():
+            return {}
+        return json.loads(txt)
+
     async def goto_text(self, url: str) -> dict:
         """Navigheaza la un document si extrage textul randat."""
         page = await self._ensure_page()
@@ -225,6 +252,60 @@ class Lege6Session(_IndacoSession):
             return ok
         except Exception as e:
             logger.error("Lege6.ro login error: %s", e)
+            return False
+
+
+SINTACT_BASE = "https://sintact.ro"
+
+
+class SintactSession(_IndacoSession):
+    """sintact.ro — platforma Wolters Kluwer Romania (legislatie, jurisprudenta, doctrina).
+
+    Login-ul redirectioneaza catre SSO-ul central Wolters Kluwer
+    (autentificare.wolterskluwer.ro, aplicatia interna "Andromeda"/"Borg"), care
+    intoarce apoi utilizatorul autentificat pe sintact.ro. Cautarea si documentele
+    se obtin din API-ul JSON intern (searchResults.get.json, search.direct.hit.get.json,
+    act.get.json), verificat live iulie 2026, nu din HTML randat.
+    """
+
+    site_name = "sintact"
+    base = SINTACT_BASE
+    state_file = "sintact_state.json"
+
+    def __init__(self):
+        super().__init__()
+        self._email = os.environ.get("SINTACT_EMAIL", "")
+        self._password = os.environ.get("SINTACT_PASSWORD", "")
+
+    async def _is_logged_in(self, page) -> bool:
+        await page.goto(SINTACT_BASE, timeout=45000)
+        await page.wait_for_timeout(1500)
+        return "autentificare.wolterskluwer.ro" not in page.url.lower()
+
+    async def _do_login(self, page) -> bool:
+        if not self._email or not self._password:
+            logger.warning("Sintact credentials missing (SINTACT_EMAIL/SINTACT_PASSWORD)")
+            return False
+        try:
+            await page.goto(SINTACT_BASE, timeout=60000)
+            await page.wait_for_timeout(2000)
+            # Banner OneTrust de consimtamant cookie-uri, poate bloca formularul dedesubt.
+            try:
+                await page.click("button:has-text('Accept')", timeout=3000)
+            except Exception:
+                pass
+            await page.fill('input[name="login"]', self._email)
+            await page.fill('input[name="password"]', self._password)
+            await page.click("#login_btn")
+            await page.wait_for_timeout(4000)
+            ok = "autentificare.wolterskluwer.ro" not in page.url.lower()
+            if ok:
+                logger.info("Sintact.ro login successful")
+            else:
+                logger.error("Sintact.ro login failed (still on WK SSO page)")
+            return ok
+        except Exception as e:
+            logger.error("Sintact.ro login error: %s", e)
             return False
 
 

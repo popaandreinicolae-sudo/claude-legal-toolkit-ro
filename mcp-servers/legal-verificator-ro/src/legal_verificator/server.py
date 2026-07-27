@@ -24,7 +24,12 @@ from mcp.server.stdio import stdio_server
 from mcp import types
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from auth import Lege5Session, Lege6Session
+from auth import Lege5Session, Lege6Session, SintactSession
+from sintact_client import (
+    search as sintact_search_fn,
+    fetch_document as sintact_fetch_doc,
+    verify_citation as sintact_verify_citation_fn,
+)
 from legislatie_client import (
     search_ccr, fetch_ccr_text, search_legislation, fetch_article, fetch_printable, search_document,
     fetch_url_text, UpstreamUnavailable,
@@ -49,6 +54,7 @@ logger = logging.getLogger("legal-verificator")
 app = Server("legal-verificator-ro")
 lege5_session = Lege5Session()
 lege6_session = Lege6Session()
+sintact_session = SintactSession()
 
 
 # ── TOOL DEFINITIONS ──────────────────────────────────────────────────────────
@@ -193,6 +199,42 @@ async def list_tools():
                     "act_year": {"type": ["integer", "string"], "description": "Alias pentru year"},
                 },
                 "required": ["act_type"],
+            },
+        ),
+        types.Tool(
+            name="sintact_verify_citation",
+            description="PRIORITAR pentru verificare citari. Verifica pe sintact.ro (Wolters Kluwer) daca o lege, decizie (CCR/ICCJ/CEDO) sau articol citat CHIAR EXISTA. Foloseste 'direct hit', acelasi mecanism ca bara de cautare sintact, apoi fallback pe cautare full-text. Raspunde CONFIRMAT (cu titlu, url, status validitate) sau NEGASIT.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Citarea de verificat, ex: 'Legea 190/2018', 'Decizia 22/2020', 'Codul Civil art. 1349'"},
+                },
+                "required": ["query"],
+            },
+        ),
+        types.Tool(
+            name="sintact_search",
+            description="Cautare full-text pe sintact.ro (Wolters Kluwer): legislatie, jurisprudenta (CCR/ICCJ/CEDO), doctrina. Cea mai completa sursa din acest server pentru jurisprudenta ICCJ, care nu are alt tool dedicat.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Termeni de cautare"},
+                    "category": {"type": "string", "enum": ["legislatie", "jurisprudenta", "doctrina"], "description": "Filtreaza client-side dupa tipul documentului (optional)"},
+                    "max_results": {"type": "integer", "description": "Numar maxim de rezultate (default 10)", "default": 10},
+                },
+                "required": ["query"],
+            },
+        ),
+        types.Tool(
+            name="sintact_fetch_document",
+            description="Descarca textul integral al unui document de pe sintact.ro, dupa nro/versionId (obtinute din sintact_search sau sintact_verify_citation).",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "nro": {"type": "integer", "description": "Identificatorul intern al documentului (camp 'nro')"},
+                    "versionId": {"type": "integer", "description": "Versiunea documentului (camp 'versionId')"},
+                },
+                "required": ["nro", "versionId"],
             },
         ),
         types.Tool(
@@ -613,6 +655,23 @@ async def call_tool(name: str, arguments: dict):
                 lege6_session,
                 arguments["act_type"], arguments["number"], arguments["year"],
             )
+            return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]
+
+        elif name == "sintact_verify_citation":
+            result = await sintact_verify_citation_fn(sintact_session, arguments["query"])
+            return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]
+
+        elif name == "sintact_search":
+            result = await sintact_search_fn(
+                sintact_session,
+                arguments["query"],
+                arguments.get("category"),
+                arguments.get("max_results", 10),
+            )
+            return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]
+
+        elif name == "sintact_fetch_document":
+            result = await sintact_fetch_doc(sintact_session, arguments["nro"], arguments["versionId"])
             return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]
 
         elif name == "lege5_search":
