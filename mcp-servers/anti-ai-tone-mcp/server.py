@@ -23,9 +23,9 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 
-SCRIPT_DIR = Path(__file__).resolve().parent.parent / '.claude' / 'scripts'
+SCRIPT_DIR = Path(__file__).resolve().parent.parent.parent / 'hooks'
 DETECT_SCRIPT = SCRIPT_DIR / 'detect_ai_tone.py'
-SKILL_PATH = Path(__file__).resolve().parent.parent / '.claude' / 'skills' / 'anti-ai-tone.md'
+SKILL_PATH = Path(__file__).resolve().parent.parent.parent / 'skills' / 'anti-ai-tone.md'
 
 app = Server('anti-ai-tone')
 
@@ -542,7 +542,7 @@ def compare_versions_inline(path_a: str, path_b: str) -> str:
     """Invoca scriptul de compare pe doua fisiere .docx."""
     import subprocess
 
-    script_path = Path("%USERPROFILE%/.claude/skills/anti-hallucination-document/scripts/compare_docx_versions.py")
+    script_path = Path.home() / '.claude' / 'skills' / 'anti-hallucination-document' / 'scripts' / 'compare_docx_versions.py'
     if not script_path.exists():
         return f"EROARE: scriptul compare_docx_versions.py nu este la {script_path}"
 
