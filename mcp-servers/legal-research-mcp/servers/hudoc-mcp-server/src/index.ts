@@ -59,6 +59,34 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     {
+      name: "hudoc_exec_search",
+      description: "Cauta in HUDOC-EXEC, baza de date a Comitetului Ministrilor privind executarea hotararilor CEDO. Arata daca o hotarare a fost efectiv implementata de statul parat (supraveghere inchisa/deschisa, numar rezolutie CM/ResDH). Nu returneaza text integral, doar metadate de status si link catre pagina oficiala.",
+      inputSchema: {
+        type: "object" as const,
+        properties: {
+          query: { type: "string", description: "Text liber de cautare (nume cauza, tema)" },
+          respondent_country: { type: "string", description: "Codul ISO3 al statului (ex: ROU, FRA)" },
+          application_number: { type: "string", description: "Nr. cerere CEDO (ex: 4200/25)" },
+          only_final_resolutions: { type: "boolean", description: "Doar rezolutii finale (executare incheiata), exclude cauze doar comunicate/pendinte (default: false)" },
+          date_from: { type: "string", description: "Data minima (YYYY-MM-DD)" },
+          date_to: { type: "string", description: "Data maxima (YYYY-MM-DD)" },
+          limit: { type: "number", description: "Rezultate maxime (default: 20)" },
+          offset: { type: "number", description: "Offset paginare" },
+        },
+      },
+    },
+    {
+      name: "hudoc_exec_case_status",
+      description: "Verifica rapid stadiul executarii unei hotarari CEDO dupa numarul cererii: supraveghere inchisa sau deschisa, numar si data rezolutie CM/ResDH.",
+      inputSchema: {
+        type: "object" as const,
+        properties: {
+          application_number: { type: "string", description: "Nr. cerere CEDO (ex: 4200/25)" },
+        },
+        required: ["application_number"],
+      },
+    },
+    {
       name: "hudoc_get_case_citations",
       description: "Extrage rețeaua de citări a unei cauze — ce cauze citează și care o citează pe ea.",
       inputSchema: {
@@ -145,6 +173,31 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             }, null, 2),
           }],
         };
+      }
+
+      case "hudoc_exec_search": {
+        const a = args as Record<string, unknown>;
+        const query = hudoc.buildExecQuery({
+          freeText: a.query as string | undefined,
+          respondent: a.respondent_country as string | undefined,
+          appno: a.application_number as string | undefined,
+          onlyFinalResolutions: a.only_final_resolutions as boolean | undefined,
+          dateFrom: a.date_from as string | undefined,
+          dateTo: a.date_to as string | undefined,
+        });
+        const result = await hudoc.searchExecution(query, Number(a.offset ?? 0), Number(a.limit ?? 20));
+        return { content: [{ type: "text", text: JSON.stringify({ results: result.results, total: result.total }, null, 2) }] };
+      }
+
+      case "hudoc_exec_case_status": {
+        const a = args as Record<string, unknown>;
+        const appNo = a.application_number as string;
+        const query = hudoc.buildExecQuery({ appno: appNo });
+        const result = await hudoc.searchExecution(query, 0, 5);
+        if (result.results.length === 0) {
+          return { content: [{ type: "text", text: JSON.stringify({ application_number: appNo, status: "NEGASIT_IN_HUDOC_EXEC", note: "Nu apare in baza de executare, posibil cauza inca pendinte la Curte sau nu a ajuns la faza de supraveghere a Comitetului Ministrilor." }) }] };
+        }
+        return { content: [{ type: "text", text: JSON.stringify({ application_number: appNo, entries: result.results }, null, 2) }] };
       }
 
       case "hudoc_get_case_citations": {

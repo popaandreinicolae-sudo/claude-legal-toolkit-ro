@@ -2,6 +2,14 @@ import axios, { AxiosInstance } from "axios";
 import * as cheerio from "cheerio";
 
 const HUDOC_SEARCH = "https://hudoc.echr.coe.int/app/query/results";
+// HUDOC-EXEC: baza de date a Comitetului Ministrilor privind executarea hotararilor CEDO
+// (acelasi motor de cautare ca HUDOC principal, index separat, verificat live iulie 2026).
+// Spre deosebire de HUDOC principal, NU cere "contentsitename" in query si textul integral
+// al rezolutiilor nu e disponibil prin /app/conversion (404 constant la testare), doar
+// metadatele de status (execsupervision, execisclosed, execresolutionnumber etc.).
+const HUDOC_EXEC_SEARCH = "https://hudoc.exec.coe.int/app/query/results";
+const HUDOC_EXEC_PAGE = "https://hudoc.exec.coe.int/eng";
+const EXEC_SELECT_FIELDS = "itemid,docname,appno,respondent,doctype,kpdateastext,conclusion,execsupervision,execisclosed,execresolutionnumber,execfinalresolutiondateastext,exectype,execviolations,execcmmeetingnumber";
 // Endpointul /app/conversion/docx/html/body/{id} returneaza 404 din 2025+
 // Endpointul corect cere parametrii library, id, filename in query string
 const HUDOC_DOC_HTML = "https://hudoc.echr.coe.int/app/conversion/docx/html/body";
@@ -79,6 +87,60 @@ export class HudocClient {
     if (params.collection && params.collection !== "all") parts.push(`documentcollectionid="${params.collection.toUpperCase()}"`);
     if (params.language) parts.push(`languageisocode:${params.language}`);
     return parts.join(" AND ");
+  }
+
+  buildExecQuery(params: {
+    freeText?: string; respondent?: string; appno?: string;
+    onlyFinalResolutions?: boolean; dateFrom?: string; dateTo?: string;
+  }): string {
+    const parts: string[] = [];
+    if (params.freeText) parts.push(params.freeText.trim());
+    if (params.appno) parts.push(`appno:${params.appno}`);
+    if (params.respondent) parts.push(`respondent:${params.respondent.toUpperCase()}`);
+    if (params.onlyFinalResolutions) parts.push("doctype:HFRES54");
+    if (params.dateFrom || params.dateTo) {
+      const from = params.dateFrom || "1950-01-01";
+      const to = params.dateTo || "2100-12-31";
+      parts.push(`kpdate:[${from}T00:00:00.0Z TO ${to}T00:00:00.0Z]`);
+    }
+    return parts.length > 0 ? parts.join(" AND ") : "*";
+  }
+
+  async searchExecution(query: string, start: number = 0, length: number = 20): Promise<{ results: Array<Record<string, unknown>>; total: number }> {
+    await this.rateLimit();
+    return this.retry(async () => {
+      const enc = (s: string) => encodeURIComponent(s).replace(/%5B/g, "[").replace(/%5D/g, "]");
+      const qs = [
+        `query=${enc(query)}`,
+        `select=${EXEC_SELECT_FIELDS}`,
+        `sort=`,
+        `start=${start}`,
+        `length=${length}`,
+        `rankingModelId=11111111-0000-0000-0000-000000000000`,
+      ].join("&");
+      const resp = await this.client.get<HudocResult>(`${HUDOC_EXEC_SEARCH}?${qs}`, {
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+      });
+      const data = resp.data;
+      const results = (data.results ?? []).map(r => ({
+        itemid: this.val(r, "itemid"),
+        caseName: this.val(r, "docname"),
+        applicationNumber: this.val(r, "appno"),
+        respondent: this.val(r, "respondent"),
+        doctype: this.val(r, "doctype"),
+        date: this.val(r, "kpdateastext"),
+        conclusion: this.val(r, "conclusion"),
+        supervisionStatus: this.val(r, "execsupervision") || null,
+        isClosed: this.val(r, "execisclosed") || null,
+        resolutionNumber: this.val(r, "execresolutionnumber") || null,
+        finalResolutionDate: this.val(r, "execfinalresolutiondateastext") || null,
+        executionType: this.val(r, "exectype") || null,
+        violations: this.val(r, "execviolations") || null,
+        cmMeetingNumber: this.val(r, "execcmmeetingnumber") || null,
+        pageUrl: `${HUDOC_EXEC_PAGE}?i=${this.val(r, "itemid")}`,
+      }));
+      return { results, total: data.resultcount ?? 0 };
+    });
   }
 
   async findItemIdByAppNo(appNo: string): Promise<string | null> {
