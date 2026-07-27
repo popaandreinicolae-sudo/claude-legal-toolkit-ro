@@ -25,7 +25,7 @@ from pathlib import Path
 _SCRIPT_DIR = Path(__file__).resolve().parent
 _CACHE_FILE = _SCRIPT_DIR / ".citation_cache.json"
 _REF_FILE = _SCRIPT_DIR / "reference_names.json"
-_LEGAL_SRC = Path(r"%USERPROFILE%\legal-verificator-ro\src\legal_verificator")
+_LEGAL_SRC = _SCRIPT_DIR.parent / "mcp-servers" / "legal-verificator-ro" / "src" / "legal_verificator"
 
 _CACHE_TTL = 7 * 24 * 3600
 

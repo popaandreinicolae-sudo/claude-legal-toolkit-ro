@@ -50,7 +50,7 @@ Localizeaza in document:
 
 Daca exista o versiune anterioara a documentului, ruleaza:
 ```bash
-python "%USERPROFILE%/.claude/skills/anti-hallucination-document/scripts/compare_docx_versions.py" "version_anterioara.docx" "version_curenta.docx" --output raport.md
+python "$HOME/.claude/skills/anti-hallucination-document/scripts/compare_docx_versions.py" "version_anterioara.docx" "version_curenta.docx" --output raport.md
 ```
 
 Raportul indica cifrele si capitolele care apar doar intr-o versiune, candidati la halucinatii.

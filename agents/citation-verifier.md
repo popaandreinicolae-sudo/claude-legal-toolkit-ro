@@ -21,7 +21,7 @@ Auditul forensic al documentelor utilizatorului a aratat ca halucinarea de citar
 Ruleaza extractorul determinist pe fisier:
 
 ```bash
-python "%USERPROFILE%/.claude/scripts/citation_core.py" [path]
+python "$HOME/.claude/scripts/citation_core.py" [path]
 ```
 
 Acesta intoarce JSON cu toate citarile detectate si un prim verdict prin legislatie.just.ro (gratuit). Foloseste-l ca baza, apoi adanceste verificarea prin MCP.
@@ -40,7 +40,7 @@ Pentru fiecare citare, confirma prin tool-ul potrivit:
 Citarea poate exista, dar considerentul atribuit sa fie al altei decizii. Cand documentul invoca un dictum verbatim („Curtea a retinut ca..."), confirmi ca pasajul apare efectiv in textul deciziei atribuite, cu verificatorul determinist:
 
 ```bash
-python "%USERPROFILE%/.claude/scripts/citation_core.py" --attr "<citatul verbatim>" ccr <numar> <an>
+python "$HOME/.claude/scripts/citation_core.py" --attr "<citatul verbatim>" ccr <numar> <an>
 ```
 
 Intoarce CONFIRMAT_IN_TEXT (pasajul apare, exact sau fuzzy), NEGASIT_IN_TEXT (pasajul nu apare, posibil atribuire gresita) sau NEVERIFICAT (text indisponibil). Atribuirea gresita este o halucinatie la fel de grava ca numarul inventat.

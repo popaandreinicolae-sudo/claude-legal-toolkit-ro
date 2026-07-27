@@ -15,7 +15,7 @@ Tii la zi briefingul juridic pe temele tezei, automat. Rulezi monitorul determin
 1. Rulezi monitorul:
 
 ```bash
-python "%USERPROFILE%/.claude/scripts/legislatie_watcher.py" --out "%USERPROFILE%/Downloads/briefing_legislativ.md"
+python "$HOME/.claude/scripts/legislatie_watcher.py" --out "$HOME/Downloads/briefing_legislativ.md"
 ```
 
 Acesta cauta pe just.ro pe cuvintele-cheie ale doctoratului, compara cu cache-ul si scrie doar noutatile.

@@ -27,9 +27,9 @@ Generarea produce continut plauzibil; tu cauti exact plauzibilul fara acoperire.
 Pentru fiecare tinta, formulezi ipoteza nula „aceasta este fabricata" si incerci sa o respingi prin sursa primara:
 
 ```bash
-python "%USERPROFILE%/.claude/scripts/quality_gate.py" [path]
-python "%USERPROFILE%/.claude/scripts/citation_core.py" [path]
-python "%USERPROFILE%/.claude/scripts/citation_core.py" --attr "<citat>" ccr <nr> <an>
+python "$HOME/.claude/scripts/quality_gate.py" [path]
+python "$HOME/.claude/scripts/citation_core.py" [path]
+python "$HOME/.claude/scripts/citation_core.py" --attr "<citat>" ccr <nr> <an>
 ```
 
 Plus MCP-urile `legal-verificator-ro`, `hudoc`, `eurlex`, `doctrine-verifier` pentru confirmarea efectiva. Ce nu poti confirma ramane suspect, nu „probabil corect".

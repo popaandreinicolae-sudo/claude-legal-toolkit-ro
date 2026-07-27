@@ -20,7 +20,7 @@ from pathlib import Path
 _SCRIPT_DIR = Path(__file__).resolve().parent
 if str(_SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPT_DIR))
-_LEGAL_SRC = Path(r"%USERPROFILE%\legal-verificator-ro\src\legal_verificator")
+_LEGAL_SRC = _SCRIPT_DIR.parent / "mcp-servers" / "legal-verificator-ro" / "src" / "legal_verificator"
 
 
 async def _fetch_one(cit: dict) -> dict:

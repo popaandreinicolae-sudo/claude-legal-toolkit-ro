@@ -20,7 +20,7 @@ Auditul a aratat ca fabricarea se produce la generare, cand modelul nu are sursa
 2. Rulezi constructorul determinist pentru sursele RO:
 
 ```bash
-python "%USERPROFILE%/.claude/scripts/build_source_pack.py" --refs "Decizia 17/2015; Legea 362/2018; OUG 155/2024" --out "%USERPROFILE%/source_pack.md"
+python "$HOME/.claude/scripts/build_source_pack.py" --refs "Decizia 17/2015; Legea 362/2018; OUG 155/2024" --out "$HOME/source_pack.md"
 ```
 
 3. Pentru surse UE si CEDO, completezi pachetul prin MCP-urile `eurlex` (cu `check_in_force` pentru statut) si `hudoc`. Pentru doctrina, prin `doctrine-verifier`.

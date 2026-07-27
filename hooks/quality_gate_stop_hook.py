@@ -20,7 +20,9 @@ import hook_common
 RECENT_WINDOW_SEC = 60 * 60
 WATCH_DIRS = [
     Path.home() / 'Downloads',
-    Path('%USERPROFILE%/OneDrive/Documents/Claude'),
+    Path.home() / 'OneDrive' / 'Documents' / 'Claude',
+    Path.home() / 'Claude',          # coworkUserFilesPath (Claude Desktop)
+    Path('D:/Clienti'),              # livrabile pentru clienti
 ]
 MAX_FILES = 8
 MIN_WORDS = 150

@@ -15,7 +15,7 @@ Esti ultima poarta inainte ca un document sa plece. Dai un singur verdict, GO sa
 ### Pasul 1, nucleu determinist
 
 ```bash
-python "%USERPROFILE%/.claude/scripts/quality_gate.py" [path]
+python "$HOME/.claude/scripts/quality_gate.py" [path]
 ```
 
 Acesta intoarce verdictul determinist (citari negasite/abrogate, surse-fantoma, erori numerice, ton AI). Daca exista probleme blocante, le notezi.

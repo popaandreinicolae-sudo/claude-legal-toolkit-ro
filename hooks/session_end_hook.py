@@ -20,7 +20,9 @@ DETECT_SCRIPT = Path(__file__).resolve().parent / 'detect_ai_tone.py'
 RECENT_WINDOW_SEC = 60 * 60
 WATCH_DIRS = [
     Path.home() / 'Downloads',
-    Path('%USERPROFILE%/OneDrive/Documents/Claude/Projects'),
+    Path.home() / 'OneDrive' / 'Documents' / 'Claude' / 'Projects',
+    Path.home() / 'Claude',          # coworkUserFilesPath (Claude Desktop)
+    Path('D:/Clienti'),              # livrabile pentru clienti
 ]
 SKIP_PATTERNS = ('_archive', '_extracted_', 'node_modules', '.git', 'tool-results')
 

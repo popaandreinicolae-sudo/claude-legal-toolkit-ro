@@ -25,7 +25,7 @@ Cand utilizatorul iti da un fisier sau un bloc de text, executi acest pipeline i
 Daca lucrezi cu un fisier .md/.txt/.docx, ruleaza scriptul de detectie:
 
 ```bash
-python "%USERPROFILE%/.claude/scripts/detect_ai_tone.py" [path] --json
+python "$HOME/.claude/scripts/detect_ai_tone.py" [path] --json
 ```
 
 Extrage scorul de naturalete si metricile. Daca lucrezi cu un bloc de text inline, scrie textul intr-un fisier temporar in `~/.claude/scripts/_tmp_review_<timestamp>.md` si ruleaza scriptul.

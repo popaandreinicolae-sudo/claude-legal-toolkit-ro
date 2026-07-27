@@ -37,6 +37,11 @@ async def _get(url, params=None, headers=None):
                 if resp.status_code == 429:
                     await asyncio.sleep(5 * (attempt + 1))
                     continue
+                # 404 = identificatorul nu exista, un raspuns valid al sursei.
+                # Nu il reincercam si nu il propagam ca eroare de retea: apelantul
+                # trebuie sa poata distinge "inventat" de "sursa indisponibila".
+                if resp.status_code == 404:
+                    return None
                 resp.raise_for_status()
                 return resp.json()
             except Exception:
@@ -168,8 +173,17 @@ async def call_tool(name: str, arguments: dict):
             return [types.TextContent(type="text", text=json.dumps({"count": len(results), "results": results}, ensure_ascii=False, indent=2))]
 
         elif name == "crossref_verify_doi":
-            doi = arguments["doi"]
+            doi = arguments["doi"].strip()
+            for prefix in ("doi:", "DOI:", "https://doi.org/", "http://doi.org/", "https://dx.doi.org/"):
+                if doi.startswith(prefix):
+                    doi = doi[len(prefix):]
+                    break
             data = await _get(f"https://api.crossref.org/works/{doi}")
+            if not data:
+                return [types.TextContent(type="text", text=json.dumps({
+                    "verified": False, "status": "NEGASIT", "doi": doi,
+                    "warning": "DOI inexistent pe CrossRef, posibil inventat.",
+                }, ensure_ascii=False, indent=2))]
             item = data.get("message", {})
             return [types.TextContent(type="text", text=json.dumps({
                 "verified": True,

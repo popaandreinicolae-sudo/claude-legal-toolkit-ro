@@ -31,7 +31,7 @@ Inainte de livrare, validezi fiecare citare:
 Pentru verificare rapida deterministica poti rula direct:
 
 ```bash
-python "%USERPROFILE%/.claude/scripts/citation_core.py" [path]
+python "$HOME/.claude/scripts/citation_core.py" [path]
 ```
 
 ### Pasul 3, audit independent inainte de livrare

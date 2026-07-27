@@ -28,7 +28,7 @@ Cand utilizatorul iti da un text juridic, executi pipeline in 5 etape:
 ### Etapa 1. Audit ton AI (mostenit de la anti-ai-tone-reviewer)
 
 ```bash
-python "%USERPROFILE%/.claude/scripts/detect_ai_tone.py" [path] --json --language ro
+python "$HOME/.claude/scripts/detect_ai_tone.py" [path] --json --language ro
 ```
 
 Extrage scorul si problemele de ton AI. Daca scor sub 70, marcheaza prioritate inalta.

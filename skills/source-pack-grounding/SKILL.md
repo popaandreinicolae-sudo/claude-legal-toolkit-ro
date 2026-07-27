@@ -22,7 +22,7 @@ Regula: inainte de redactarea unui document juridic care invoca surse, aduni int
 Invoci subagentul `source-pack-builder` sau rulezi direct:
 
 ```bash
-python "%USERPROFILE%/.claude/scripts/build_source_pack.py" --refs "<lista referinte>" --out "%USERPROFILE%/source_pack.md"
+python "$HOME/.claude/scripts/build_source_pack.py" --refs "<lista referinte>" --out "$HOME/source_pack.md"
 ```
 
 Completezi cu MCP-urile `eurlex` (statut in vigoare prin check_in_force), `hudoc` (CEDO) si `doctrine-verifier` (doctrina cu DOI/ISBN).
