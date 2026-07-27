@@ -154,9 +154,12 @@ OFFSET ${offset}`;
   }
 
   async getDocumentByCelex(celexNumber: string): Promise<Record<string, string>> {
+    // CELEX se leaga ca variabila si se compara cu STR(), fiindca literalul stocat
+    // in Cellar poarta un datatype/limba — un match pe literal fix "..." nu se prinde.
     const query = `
 SELECT ?title ?date ?type ?eli WHERE {
-  ?work cdm:resource_legal_id_celex "${celexNumber}" .
+  ?work cdm:resource_legal_id_celex ?celex .
+  FILTER(STR(?celex) = "${celexNumber}")
   ?work cdm:work_date_document ?date .
   OPTIONAL { ?work cdm:resource_legal_type ?type }
   OPTIONAL { ?work cdm:resource_legal_eli ?eli }
@@ -165,7 +168,7 @@ SELECT ?title ?date ?type ?eli WHERE {
   ?exp cdm:expression_title ?title .
 }
 LIMIT 1`;
-    const results = await this.executeSparql(query);
+    const results = await this.executeSparqlExpectingResults(query);
     return results[0] ?? {};
   }
 
@@ -181,19 +184,28 @@ LIMIT 1`;
     }
     const m = ref.match(/(\d{1,4})\s*\/\s*(\d{1,4})/);
     if (!m) return "";
-    let a = parseInt(m[1], 10);
-    let b = parseInt(m[2], 10);
-    let year: number, num: number, typeLetter: string;
-    if (a >= 1900) {
-      // AN/NUMAR -> directiva (L)
-      year = a; num = b; typeLetter = "L";
+
+    // Tipul actului trebuie stabilit INAINTE de a citi perechea de numere, fiindca
+    // el decide ordinea: directivele se numeroteaza mereu AN/NUMAR (95/46 = 1995,
+    // nr. 46), pe cand regulamentele si deciziile clasice sunt NUMAR/AN (1612/68 =
+    // 1968, nr. 1612) pana la trecerea la forma moderna AN/NUMAR (2016/679).
+    let typeLetter = "L";
+    if (/REGULATION|REGULAMENT/.test(ref)) typeLetter = "R";
+    else if (/DIRECTIV/.test(ref)) typeLetter = "L";
+    else if (/DECISION|DECIZI/.test(ref)) typeLetter = "D";
+
+    const a = parseInt(m[1], 10);
+    const b = parseInt(m[2], 10);
+    let year: number, num: number;
+    if (typeLetter === "L" || a >= 1900) {
+      year = a; num = b;
     } else {
-      // NUMAR/AN -> regulament (R)
-      num = a; year = b; typeLetter = "R";
+      num = a; year = b;
     }
-    if (/REGULAMENT/.test(ref)) typeLetter = "R";
-    if (/DIRECTIV/.test(ref)) typeLetter = "L";
-    if (/DECIZIA|DECISION/.test(ref)) typeLetter = "D";
+
+    // Ani din doua cifre: UE incepe in 1952, deci 52-99 sunt 19xx, restul 20xx.
+    if (year < 100) year += year >= 52 ? 1900 : 2000;
+
     return `3${year}${typeLetter}${String(num).padStart(4, "0")}`;
   }
 
@@ -205,25 +217,72 @@ LIMIT 1`;
   async checkInForce(reference: string): Promise<Record<string, unknown>> {
     const celex = this.referenceToCelex(reference);
     if (!celex) return { reference, error: "Nu am putut deriva CELEX din referinta." };
+    const url = `${EURLEX_BASE}/legal-content/EN/ALL/?uri=CELEX:${celex}`;
+    // 1) Sursa autoritativa: flagul de status din Cellar (SPARQL). Pagina HTML EUR-Lex
+    //    nu mai contine textul simplu "In force", deci scraping-ul nu mai e de incredere.
+    try {
+      const sparql = `
+SELECT ?force ?eov WHERE {
+  ?work cdm:resource_legal_id_celex ?celex .
+  FILTER(STR(?celex) = "${celex}")
+  OPTIONAL { ?work cdm:resource_legal_in-force ?force }
+  OPTIONAL { ?work cdm:resource_legal_date_end-of-validity ?eov }
+}
+LIMIT 1`;
+      const rows = await this.executeSparqlExpectingResults(sparql, 3);
+      const row = rows[0];
+      if (row && (row.force !== undefined || row.eov !== undefined)) {
+        const forceVal = String(row.force ?? "").toLowerCase();
+        const eov = row.eov ? row.eov.substring(0, 10) : null;
+        let inForce: boolean | null = null;
+        if (forceVal === "true") inForce = true;
+        else if (forceVal === "false") inForce = false;
+        else if (eov) inForce = new Date(eov) > new Date() ? true : false;
+        if (inForce !== null) {
+          return {
+            reference,
+            celex,
+            in_force: inForce,
+            status: inForce ? "IN VIGOARE" : "ABROGAT / NO LONGER IN FORCE",
+            end_of_validity: eov ? eov.split("-").reverse().join("/") : null,
+            repealed_by: null,
+            source: "cellar-sparql",
+            url,
+          };
+        }
+      }
+    } catch (e) {
+      // cade in fallback-ul HTML de mai jos
+    }
+    // 2) Fallback best-effort pe HTML. Nu fabricam statut: daca nu gasim indicatori clari
+    //    raspunsul ramane NECUNOSCUT.
     await this.rateLimit();
     return this.retry(async () => {
-      const url = `${EURLEX_BASE}/legal-content/EN/ALL/?uri=CELEX:${celex}`;
       const resp = await this.client.get<string>(url, { responseType: "text" });
       const $ = cheerio.load(resp.data);
       const body = $("body").text().replace(/\s+/g, " ");
       const noLonger = /No longer in force/i.test(body);
-      const endValidity = body.match(/Date of end of validity:\s*([0-9]{2}\/[0-9]{2}\/[0-9]{4})/i);
+      const endValidity = body.match(/end of validity:\s*([0-9]{2}\/[0-9]{2}\/[0-9]{4})/i);
       const repealedBy = body.match(/Repealed by[:\s]*([0-9A-Z]{8,})/i);
       const inForceFlag = /\bIn force\b/i.test(body) && !noLonger;
-      const status = noLonger ? "ABROGAT / NO LONGER IN FORCE" : (inForceFlag ? "IN VIGOARE" : "NECUNOSCUT");
+      let eovInPast = false;
+      if (endValidity) {
+        const [d, m, y] = endValidity[1].split("/");
+        eovInPast = new Date(`${y}-${m}-${d}`) < new Date();
+      }
+      let in_force: boolean | null = null;
+      let status = "NECUNOSCUT";
+      if (noLonger || eovInPast) { in_force = false; status = "ABROGAT / NO LONGER IN FORCE"; }
+      else if (inForceFlag) { in_force = true; status = "IN VIGOARE"; }
       return {
         reference,
         celex,
-        in_force: !noLonger && inForceFlag ? true : (noLonger ? false : null),
+        in_force,
         status,
         end_of_validity: endValidity ? endValidity[1] : null,
         repealed_by: repealedBy ? repealedBy[1] : null,
-        url: `${EURLEX_BASE}/legal-content/EN/ALL/?uri=CELEX:${celex}`,
+        source: "eurlex-html",
+        url,
       };
     });
   }

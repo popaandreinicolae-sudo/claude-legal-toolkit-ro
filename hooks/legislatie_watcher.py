@@ -13,6 +13,7 @@ Utilizare:
 
 import asyncio
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -40,10 +41,17 @@ def _load_seen() -> set:
 
 
 def _save_seen(seen: set):
+    # Atomic, ca doua rulari suprapuse ale watcher-ului sa nu lase fisierul trunchiat
+    # (un _SEEN corupt s-ar citi ca set gol si ar raporta din nou tot ca "nou").
     try:
-        _SEEN.write_text(json.dumps(sorted(seen), ensure_ascii=False), encoding="utf-8")
+        tmp = _SEEN.with_suffix(f".{os.getpid()}.tmp")
+        tmp.write_text(json.dumps(sorted(seen), ensure_ascii=False), encoding="utf-8")
+        os.replace(tmp, _SEEN)
     except Exception:
-        pass
+        try:
+            tmp.unlink()
+        except Exception:
+            pass
 
 
 async def _search_all() -> dict:

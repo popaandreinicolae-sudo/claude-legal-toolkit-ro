@@ -64,20 +64,31 @@ class _IndacoSession:
         self._page = None
         self._authenticated = False
         self._lock = asyncio.Lock()
+        # Lock separat de _lock: ensure_authenticated apeleaza _ensure_page tinand
+        # deja _lock, iar asyncio.Lock nu e reentrant, deci refolosirea lui ar bloca.
+        self._page_lock = asyncio.Lock()
 
     async def _ensure_page(self):
+        # Doua apeluri de tool concurente pe o sesiune proaspata ar vedea amandoua
+        # _page = None si ar deschide fiecare cate un context; unul ar ramane orfan,
+        # cu Chromium-ul lui cu tot. Verificare dubla, inainte si dupa lock.
         if self._page is not None:
             return self._page
-        browser = await _get_browser()
-        _STATE_DIR.mkdir(exist_ok=True)
-        state_path = _STATE_DIR / self.state_file
-        kwargs = dict(locale="ro-RO", user_agent=_USER_AGENT)
-        if state_path.exists():
-            kwargs["storage_state"] = str(state_path)
-        self._context = await browser.new_context(**kwargs)
-        self._context.set_default_timeout(45000)
-        self._page = await self._context.new_page()
-        return self._page
+        async with self._page_lock:
+            if self._page is not None:
+                return self._page
+            browser = await _get_browser()
+            _STATE_DIR.mkdir(exist_ok=True)
+            state_path = _STATE_DIR / self.state_file
+            kwargs = dict(locale="ro-RO", user_agent=_USER_AGENT)
+            if state_path.exists():
+                kwargs["storage_state"] = str(state_path)
+            context = await browser.new_context(**kwargs)
+            context.set_default_timeout(45000)
+            page = await context.new_page()
+            self._context = context
+            self._page = page
+            return self._page
 
     async def _save_state(self):
         try:

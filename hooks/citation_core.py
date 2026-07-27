@@ -17,6 +17,7 @@ Fail-open: orice eroare de retea/import => verdict NEVERIFICAT, niciodata except
 
 import asyncio
 import json
+import os
 import re
 import sys
 import time
@@ -92,10 +93,19 @@ def _load_cache() -> dict:
 
 
 def _save_cache(cache: dict):
+    # Scriere atomica: mai multe sesiuni (Desktop + Code, hook + subagent) pot ajunge
+    # aici simultan, iar un write_text direct lasa fisierul trunchiat pentru cine
+    # citeste in acelasi moment. Cu fisier temporar + os.replace, cititorii vad ori
+    # varianta veche, ori pe cea noua, niciodata una pe jumatate.
     try:
-        _CACHE_FILE.write_text(json.dumps(cache, ensure_ascii=False), encoding="utf-8")
+        tmp = _CACHE_FILE.with_suffix(f".{os.getpid()}.tmp")
+        tmp.write_text(json.dumps(cache, ensure_ascii=False), encoding="utf-8")
+        os.replace(tmp, _CACHE_FILE)
     except Exception:
-        pass
+        try:
+            tmp.unlink()
+        except Exception:
+            pass
 
 
 def _load_reference() -> dict:
