@@ -67,6 +67,8 @@ class _IndacoSession:
         # Lock separat de _lock: ensure_authenticated apeleaza _ensure_page tinand
         # deja _lock, iar asyncio.Lock nu e reentrant, deci refolosirea lui ar bloca.
         self._page_lock = asyncio.Lock()
+        # Navigarile pe pagina partajata se serializeaza intre ele.
+        self._nav_lock = asyncio.Lock()
 
     async def _ensure_page(self):
         # Doua apeluri de tool concurente pe o sesiune proaspata ar vedea amandoua
@@ -165,8 +167,15 @@ class _IndacoSession:
         return json.loads(txt)
 
     async def goto_text(self, url: str) -> dict:
-        """Navigheaza la un document si extrage textul randat."""
+        """Navigheaza la un document si extrage textul randat.
+
+        Serializat: sesiunea are o singura pagina, deci doua navigari concurente
+        s-ar calca reciproc si a doua ar returna textul primeia."""
         page = await self._ensure_page()
+        async with self._nav_lock:
+            return await self._goto_text_locked(page, url)
+
+    async def _goto_text_locked(self, page, url: str) -> dict:
         await page.goto(url, timeout=60000)
         try:
             await page.wait_for_load_state("networkidle", timeout=15000)
@@ -204,13 +213,14 @@ class _IndacoSession:
     async def goto_rendered_html(self, url: str, wait_ms: int = 5000) -> str:
         """Navigheaza la o pagina SPA si returneaza HTML-ul DUPA ce ruleaza JavaScript."""
         page = await self._ensure_page()
-        await page.goto(url, timeout=60000)
-        try:
-            await page.wait_for_load_state("networkidle", timeout=12000)
-        except Exception:
-            pass
-        await page.wait_for_timeout(wait_ms)
-        return await page.content()
+        async with self._nav_lock:
+            await page.goto(url, timeout=60000)
+            try:
+                await page.wait_for_load_state("networkidle", timeout=12000)
+            except Exception:
+                pass
+            await page.wait_for_timeout(wait_ms)
+            return await page.content()
 
     async def close(self):
         try:

@@ -263,7 +263,7 @@ async def list_tools():
         ),
         types.Tool(
             name="batch_verify_ccr",
-            description="Verifică în lot mai multe decizii CCR. Rate limited, cu sumar la final.",
+            description="Verifica in lot mai multe decizii CCR, in paralel pe sursa oficiala, cu sumar la final. Maximum 12 decizii per apel; pentru mai multe, imparte in loturi si apeleaza de mai multe ori.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -278,7 +278,8 @@ async def list_tools():
                             },
                             "required": ["number", "year", "claimed_subject"],
                         },
-                        "description": "Lista de decizii CCR de verificat",
+                        "description": "Lista de decizii CCR de verificat (maximum 12)",
+                        "maxItems": 12,
                     },
                 },
                 "required": ["decisions"],
@@ -330,6 +331,55 @@ async def _search_ccr_both(number: int, year: int) -> dict:
     except Exception as e:
         errors.append(("lege5.ro", str(e)))
         return {"found": False, "errors": errors, "error": "Decizia nu a fost gasita pe niciuna din sursele disponibile."}
+
+
+# Peste acest prag lotul depaseste fereastra de asteptare a clientului MCP
+# (Claude Desktop taie apelul in jur de 60s), asa ca il refuzam explicit, cu
+# instructiunea de a-l imparti, in loc sa-l lasam sa expire fara raspuns.
+BATCH_MAX = 12
+# Cate verificari merg simultan pe sursa oficiala. Peste 4 nu mai castigam timp
+# si incepem sa incarcam inutil just.ro.
+BATCH_CONCURRENCY = 4
+
+
+async def _batch_verify(decisions: list) -> list:
+    """Verifica un lot de decizii CCR.
+
+    Sursa oficiala (legislatie.just.ro, prin httpx) merge in paralel: e de circa
+    patru ori mai rapida decat calea prin browser si, spre deosebire de ea, se
+    poate apela concurent, sesiunile Playwright avand o singura pagina fiecare.
+    Ce nu se rezolva acolo trece secvential prin lantul complet lege6 -> just.ro
+    -> lege5, ca sa nu pierdem deciziile pe care doar sursele comerciale le au.
+    """
+    sem = asyncio.Semaphore(BATCH_CONCURRENCY)
+
+    async def official(dec: dict) -> tuple:
+        async with sem:
+            try:
+                r = await fetch_ccr_text(dec["number"], dec["year"])
+                return dec, (r.get("text") or "")
+            except Exception as e:
+                logger.warning("just.ro batch fetch %s/%s: %s", dec["number"], dec["year"], e)
+                return dec, ""
+
+    fetched = await asyncio.gather(*(official(d) for d in decisions))
+
+    results = []
+    for dec, text in fetched:
+        if not text:
+            # Rezerva completa, inclusiv caile prin browser, care se serializeaza.
+            try:
+                text = (await _fetch_ccr_text_both(dec["number"], dec["year"])).get("text") or ""
+            except Exception as e:
+                logger.warning("fallback batch fetch %s/%s: %s", dec["number"], dec["year"], e)
+        v = (_verify_citation(text, dec["claimed_subject"]) if text
+             else {"verdict": "UNVERIFIABLE", "actual_subject": ""})
+        results.append({
+            "key": f"DCC {dec['number']}/{dec['year']}",
+            "verdict": v["verdict"],
+            "actual_subject": v.get("actual_subject", ""),
+        })
+    return results
 
 
 async def _fetch_ccr_text_both(number: int, year: int) -> dict:
@@ -689,29 +739,16 @@ async def call_tool(name: str, arguments: dict):
 
         elif name == "batch_verify_ccr":
             decisions = arguments["decisions"]
-            results = []
-            confirmed = incorrect = unverifiable = 0
+            if len(decisions) > BATCH_MAX:
+                return [types.TextContent(type="text", text=json.dumps({
+                    "error": f"Lot prea mare: {len(decisions)} decizii, maximum {BATCH_MAX}. "
+                             f"Imparte-l in loturi de cate {BATCH_MAX} si apeleaza de mai multe ori.",
+                }, ensure_ascii=False, indent=2))]
 
-            for i, dec in enumerate(decisions):
-                text_result = await _fetch_ccr_text_both(dec["number"], dec["year"])
-                if text_result.get("text"):
-                    v = _verify_citation(text_result["text"], dec["claimed_subject"])
-                else:
-                    v = {"verdict": "UNVERIFIABLE", "actual_subject": ""}
-
-                key = f"DCC {dec['number']}/{dec['year']}"
-                results.append({"key": key, "verdict": v["verdict"], "actual_subject": v.get("actual_subject", "")})
-
-                if v["verdict"] == "CONFIRMED":
-                    confirmed += 1
-                elif v["verdict"] == "INCORRECT":
-                    incorrect += 1
-                else:
-                    unverifiable += 1
-
-                # Rate limiting: 1 second between batches of 3
-                if (i + 1) % 3 == 0:
-                    await asyncio.sleep(1.0)
+            results = await _batch_verify(decisions)
+            confirmed = sum(1 for r in results if r["verdict"] == "CONFIRMED")
+            incorrect = sum(1 for r in results if r["verdict"] == "INCORRECT")
+            unverifiable = len(results) - confirmed - incorrect
 
             return [types.TextContent(type="text", text=json.dumps({
                 "results": results,
