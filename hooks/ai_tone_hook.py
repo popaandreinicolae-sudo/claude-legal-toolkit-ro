@@ -82,10 +82,19 @@ def main() -> int:
         return 0
 
     score = data.get('naturalness_score', 100)
-    if score >= THRESHOLD:
+    metrics = data.get('metrics', {})
+
+    # Reguli cu toleranta zero: eticheta-doua-puncte (REGULA 0), paralelismul
+    # negativ (REGULA 4) si apozitiile cu liniute (REGULA 2.2 DOOM 3). Poarta de
+    # scor le inghitea, fiindca un text cu 80/100 nu ajungea niciodata la lista de
+    # probleme, desi incalca reguli care nu se compenseaza cu un scor bun pe rest.
+    hard_violation = any(
+        metrics.get(k, {}).get('above_threshold')
+        for k in ('label_colon', 'negative_parallelism', 'appositional_dashes')
+    )
+    if score >= THRESHOLD and not hard_violation:
         return 0
 
-    metrics = data.get('metrics', {})
     issues = []
     if metrics.get('em_dash', {}).get('above_threshold'):
         issues.append(f"  - em-dash overuse: {metrics['em_dash']['per_page']:.1f}/pag (max 1.0)")

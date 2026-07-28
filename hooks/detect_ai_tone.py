@@ -572,7 +572,7 @@ def print_human_report(r):
     if m['label_colon']['above_threshold']:
         print(f"\n[LABEL-COLON] Pattern '**X:** desc' detectat: {m['label_colon']['count']} aparitii (REGULA 0)")
     if m['negative_parallelism']['above_threshold']:
-        print(f"\n[PARALELISM] 'Nu X, ci Y' / 'Not X, but Y': {m['negative_parallelism']['count']} (max 1)")
+        print(f"\n[PARALELISM] 'Nu X, ci Y' / 'Not X, but Y': {m['negative_parallelism']['count']} (REGULA 4, prag zero)")
     if m['bullet_density']['above_threshold']:
         print(f"\n[BULLETS] Densitate excesiva: {m['bullet_density']['ratio']*100:.0f}% (max 20%)")
     if m['rule_of_three']['above_threshold']:
