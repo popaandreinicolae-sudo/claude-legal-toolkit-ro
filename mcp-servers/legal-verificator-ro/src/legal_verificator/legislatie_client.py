@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import re
+import unicodedata
 from typing import Optional, Tuple
 import httpx
 from bs4 import BeautifulSoup
@@ -321,39 +322,99 @@ async def fetch_ccr_text(number: int, year: int) -> dict:
 CONSTITUTIE_DOC_ID = "47355"
 
 
-async def search_legislation(act_type: str, number: int, year: int) -> dict:
-    """Search for a legislative act by type, number, and year."""
-    if act_type.lower() in ("constitutie", "constituție"):
-        return {
-            "found": True,
-            "title": "CONSTITUȚIA ROMÂNIEI (republicată în M. Of. nr. 767/2003)",
-            "status": "in_vigoare",
-            "url": f"{BASE_URL}/Public/DetaliiDocument/{CONSTITUTIE_DOC_ID}",
-            "abrogated_by": None,
-        }
+# Denumirea citibila a tipului de act, folosita in mesaje catre utilizator.
+_DISPLAY_NAME = {
+    "lege": "LEGE",
+    "oug": "ORDONANȚĂ DE URGENȚĂ",
+    "og": "ORDONANȚĂ",
+    "hg": "HOTĂRÂRE",
+    "ordin": "ORDIN",
+    "decret": "DECRET",
+    "cod": "COD",
+    "constitutie": "CONSTITUȚIA",
+    "constituție": "CONSTITUȚIA",
+}
 
-    type_map = {
-        "lege": "LEGE",
-        "oug": "ORDONANȚĂ DE URGENȚĂ",
-        "og": "ORDONANȚĂ",
-        "hg": "HOTĂRÂRE",
-        "ordin": "ORDIN",
-        "cod": "Codul",
-        "constitutie": "CONSTITUȚIA",
-        "constituție": "CONSTITUȚIA",
-    }
-    act_name = type_map.get(act_type.lower(), act_type.upper())
+# Ce se trimite EFECTIV in campul TitleText al formularului. Site-ul are propriul
+# vocabular, scrie ordonanta de urgenta "ORD DE URGENTA" si ordonanta simpla "OG",
+# iar formularul intoarce zero rezultate daca titlul cerut vine cu diacritice sau
+# cu numarul lipit de tip: "ORDONANȚĂ DE URGENȚĂ 57" nu gasea nimic, desi OUG
+# 57/2019 exista. Numarul si anul se trimit oricum separat, pe campurile lor, deci
+# titlul ramane doar tipul, fara diacritice. Sirul gol inseamna "orice tip",
+# necesar la coduri, fiindca un cod poate fi lege (Codul civil, Legea 287/2009)
+# sau ordonanta de urgenta (Codul administrativ, OUG 57/2019).
+_TITLE_QUERY = {
+    "lege": "LEGE",
+    "oug": "ORD DE URGENTA",
+    "og": "ORDONANTA",
+    "hg": "HOTARARE",
+    "ordin": "ORDIN",
+    "decret": "DECRET",
+}
+
+# Un cod nu are tip propriu pe site, e publicat ca lege (Codul civil, Legea
+# 287/2009) sau ca ordonanta de urgenta (Codul administrativ, OUG 57/2019).
+# Se incearca in ordinea asta, ca sa nu iasa primul act oarecare cu acelasi
+# numar si an, care ar fi un fals pozitiv, nu o verificare.
+_COD_FALLBACK_TYPES = ("lege", "oug", "decret")
+
+# Cum incepe titlul actului in lista de rezultate, per tip. Filtrul opreste
+# confuzia dintre act si randurile vecine (o RECTIFICARE cu acelasi numar si an).
+_TITLE_PREFIXES = {
+    "lege": ("lege",),
+    "oug": ("ord de urgenta", "ordonanta de urgenta", "oug"),
+    "og": ("og", "ordonanta"),
+    "hg": ("hotarare", "hg"),
+    "ordin": ("ordin",),
+    "decret": ("decret",),
+}
+
+
+def _fold(s: str) -> str:
+    """Litere mici, fara diacritice. Titlurile actelor vin in ASCII de pe site,
+    randurile descriptive vin cu diacritice, iar comparatia trebuie sa le vada la fel."""
+    decomposed = unicodedata.normalize("NFKD", s)
+    return "".join(c for c in decomposed if not unicodedata.combining(c)).lower()
+
+
+def _title_is_type(title: str, act_type: str) -> bool:
+    """Titlul din lista incepe cu tipul de act cerut. Un tip pe care site-ul nu-l
+    are in vocabular se verifica dupa propriul nume, nu se accepta orbeste:
+    altfel o cautare de cod ar intoarce primul decret cu acelasi numar si an."""
+    prefixes = _TITLE_PREFIXES.get(act_type)
+    if not prefixes:
+        folded = _fold(act_type).strip()
+        if not folded:
+            return True
+        prefixes = (folded,)
+    t = re.sub(r"\s+", " ", _fold(title)).strip()
+    t = re.sub(r"^\d+\.\s*", "", t)
+    return any(t.startswith(p) for p in prefixes)
+
+
+async def _search_by_type(key: str, number: int, year: int) -> Optional[dict]:
+    """Cauta un act de un tip precis. None inseamna ca tipul asta nu s-a gasit."""
+    title_query = _TITLE_QUERY.get(key, _fold(key).upper())
 
     results = await search_document(
-        query=f"{act_name} {number}",
+        query=title_query,
         doc_number=str(number),
         date_from=str(year),
         date_to=str(year),
     )
+    # Tipul cerut nu figureaza in vocabularul site-ului, deci se cauta pe numar si
+    # an, iar tipul se verifica pe titlurile intoarse.
+    if not results and title_query:
+        results = await search_document(
+            query="",
+            doc_number=str(number),
+            date_from=str(year),
+            date_to=str(year),
+        )
 
     for r in results:
         title = r["title"]
-        if str(number) in title and str(year) in title:
+        if str(number) in title and str(year) in title and _title_is_type(title, key):
             # Check status from title
             title_lower = title.lower()
             status = "in_vigoare"
@@ -370,6 +431,30 @@ async def search_legislation(act_type: str, number: int, year: int) -> dict:
                 "url": r["url"],
                 "abrogated_by": abrogated_by,
             }
+    return None
+
+
+async def search_legislation(act_type: str, number: int, year: int) -> dict:
+    """Search for a legislative act by type, number, and year."""
+    key = (act_type or "").lower()
+    if key in ("constitutie", "constituție"):
+        return {
+            "found": True,
+            "title": "CONSTITUȚIA ROMÂNIEI (republicată în M. Of. nr. 767/2003)",
+            "status": "in_vigoare",
+            "url": f"{BASE_URL}/Public/DetaliiDocument/{CONSTITUTIE_DOC_ID}",
+            "abrogated_by": None,
+        }
+
+    act_name = _DISPLAY_NAME.get(key, (act_type or "").upper())
+    attempts = _COD_FALLBACK_TYPES if key in ("cod", "codul") else (key,)
+
+    for attempt in attempts:
+        found = await _search_by_type(attempt, number, year)
+        if found:
+            if attempt != key:
+                found["resolved_as"] = attempt
+            return found
 
     return {"found": False, "error": f"{act_name} nr. {number}/{year} nu a fost găsită pe legislatie.just.ro."}
 

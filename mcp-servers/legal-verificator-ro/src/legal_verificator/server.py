@@ -29,6 +29,11 @@ from sintact_client import (
     search as sintact_search_fn,
     fetch_document as sintact_fetch_doc,
     verify_citation as sintact_verify_citation_fn,
+    search_jurisprudence as sintact_search_jurisprudence_fn,
+    get_jurisprudence_facets as sintact_facets_fn,
+    search_ccr_decision as sintact_search_ccr,
+    fetch_ccr_text as sintact_fetch_ccr,
+    fold_diacritics,
 )
 from legislatie_client import (
     search_ccr, fetch_ccr_text, search_legislation, fetch_article, fetch_printable, search_document,
@@ -59,12 +64,44 @@ sintact_session = SintactSession()
 
 # ── TOOL DEFINITIONS ──────────────────────────────────────────────────────────
 
+# Ordinea in care tool-urile ajung la model. Pozitia in lista cantareste la
+# alegerea tool-ului, deci sursa de rezerva asezata inaintea celei primare
+# contrazice in fapt ce scrie in descriere. sintact.ro sta primul fiindca are
+# abonament activ si sesiunea se autentifica; Indaco (lege6, lege5) inchide lista.
+# Un tool care lipseste de aici ajunge la coada, fara sa dispara.
+_TOOL_ORDER = (
+    # 1. sintact.ro (Wolters Kluwer), sursa primara
+    "sintact_verify_citation",
+    "sintact_search",
+    "sintact_search_jurisprudence",
+    "sintact_jurisprudence_filters",
+    "sintact_fetch_document",
+    # 2. surse oficiale publice
+    "search_ccr_decision",
+    "fetch_ccr_decision_text",
+    "verify_ccr_citation",
+    "search_ccr_by_subject",
+    "batch_verify_ccr",
+    "search_legislation",
+    "fetch_article_text",
+    "fetch_legal_url",
+    # 3. Indaco, rezerva pentru cazul in care sintact nu se autentifica
+    "lege6_search",
+    "lege6_search_legislation",
+    "lege6_fetch_document",
+    "lege5_search",
+    "lege5_fetch_document",
+)
+
+
 @app.list_tools()
 async def list_tools():
-    return [
+    tools = [
         types.Tool(
             name="search_ccr_decision",
-            description="Caută o decizie CCR pe legislatie.just.ro și lege5.ro. Returnează URL, titlu, data publicării.",
+            description="Caută o decizie CCR, întâi pe sintact.ro (identificare prin emitent, deci nu "
+                        "confundă decizia CCR cu o decizie ICCJ sau a prim-ministrului cu același "
+                        "număr), apoi pe legislatie.just.ro. Returnează URL, titlu, data publicării.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -116,25 +153,34 @@ async def list_tools():
         ),
         types.Tool(
             name="search_legislation",
-            description="Caută un act normativ pe legislatie.just.ro. Verifică dacă e în vigoare sau abrogat.",
+            description="Caută un act normativ pe legislatie.just.ro. Verifică dacă e în vigoare sau abrogat. "
+                        "Se poate apela în două feluri: fie cu câmpurile separate act_type + number + year, "
+                        "fie cu citarea întreagă în 'query' ('Legea 58/2023', 'O.U.G. nr. 155/2024', "
+                        "'Codul muncii'), din care tipul, numărul și anul se extrag automat. "
+                        "Niciun câmp nu e obligatoriu: cu date incomplete tool-ul întoarce candidați reali "
+                        "din căutarea full-text, ca apelul următor să fie precis.",
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "act_type": {"type": "string", "description": "Tipul actului: lege, oug, og, hg, ordin, cod, constitutie"},
+                    "query": {"type": "string", "description": "Citarea în text liber, ex: 'Legea 58/2023', 'OUG 155/2024', 'Codul penal'. Alternativă la act_type+number+year."},
+                    "act_type": {"type": "string", "description": "Tipul actului: lege, oug, og, hg, ordin, cod, constitutie (acceptă și formele 'Legea', 'O.U.G.', 'H.G.')"},
                     "number": {"type": ["integer", "string"], "description": "Numărul actului (acceptă și alias 'act_number')"},
                     "act_number": {"type": ["integer", "string"], "description": "Alias pentru number"},
                     "year": {"type": ["integer", "string"], "description": "Anul actului (acceptă și alias 'act_year')"},
                     "act_year": {"type": ["integer", "string"], "description": "Alias pentru year"},
                 },
-                "required": ["act_type"],
             },
         ),
         types.Tool(
             name="fetch_article_text",
-            description="Extrage textul exact al unui articol/alineat/literă din actul normativ specificat.",
+            description="Extrage textul exact al unui articol/alineat/literă din actul normativ specificat. "
+                        "Acceptă fie câmpurile separate, fie citarea întreagă în 'query' "
+                        "('art. 3 alin. (2) lit. b) din Legea 58/2023', 'art. 53 din Constituție'), "
+                        "din care actul, articolul, alineatul și litera se extrag automat.",
             inputSchema={
                 "type": "object",
                 "properties": {
+                    "query": {"type": "string", "description": "Citarea în text liber, ex: 'art. 3 alin. (2) din Legea 58/2023'. Alternativă la câmpurile separate."},
                     "act_type": {"type": "string", "description": "Tipul actului: lege, oug, hg, cod, constitutie"},
                     "number": {"type": ["integer", "string"], "description": "Numărul actului, 0 pentru Constituție (acceptă și alias 'act_number')"},
                     "act_number": {"type": ["integer", "string"], "description": "Alias pentru number"},
@@ -144,7 +190,6 @@ async def list_tools():
                     "alineat": {"type": ["integer", "string"], "description": "Numărul alineatului (opțional)"},
                     "litera": {"type": "string", "description": "Litera (opțional, ex: 'a', 'b')"},
                 },
-                "required": ["act_type", "article"],
             },
         ),
         types.Tool(
@@ -164,7 +209,10 @@ async def list_tools():
         ),
         types.Tool(
             name="lege6_search",
-            description="PRIORITAR. Căutare full-text pe lege6.ro (Indaco Systems, platforma cea mai actualizată) în legislație, jurisprudență, doctrină. Folosește această sursă PRIMA pentru orice verificare de act normativ sau jurisprudență.",
+            description="REZERVA. Căutare full-text pe lege6.ro (Indaco Systems). Sursa primară pentru "
+                        "legislație, jurisprudență și doctrină este sintact.ro (sintact_search, "
+                        "sintact_search_jurisprudence); lege6.ro se folosește doar dacă sesiunea "
+                        "sintact nu se autentifică. Contul lege6 poate să nu fie configurat.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -188,17 +236,18 @@ async def list_tools():
         ),
         types.Tool(
             name="lege6_search_legislation",
-            description="Caută un act normativ pe lege6.ro după tip + nr/an. Returnează status (în vigoare/abrogat/modificat).",
+            description="Caută un act normativ pe lege6.ro după tip + nr/an. Returnează status (în vigoare/abrogat/modificat). "
+                        "Acceptă și citarea întreagă în 'query' ('Legea 58/2023'), din care tipul, numărul și anul se extrag automat.",
             inputSchema={
                 "type": "object",
                 "properties": {
+                    "query": {"type": "string", "description": "Citarea în text liber, ex: 'Legea 58/2023'. Alternativă la act_type+number+year."},
                     "act_type": {"type": "string", "description": "Tipul actului: lege, oug, og, hg, ordin, cod, constitutie"},
                     "number": {"type": ["integer", "string"], "description": "Numărul actului (acceptă și alias 'act_number')"},
                     "act_number": {"type": ["integer", "string"], "description": "Alias pentru number"},
                     "year": {"type": ["integer", "string"], "description": "Anul actului (acceptă și alias 'act_year')"},
                     "act_year": {"type": ["integer", "string"], "description": "Alias pentru year"},
                 },
-                "required": ["act_type"],
             },
         ),
         types.Tool(
@@ -214,32 +263,89 @@ async def list_tools():
         ),
         types.Tool(
             name="sintact_search",
-            description="Cautare full-text pe sintact.ro (Wolters Kluwer): legislatie, jurisprudenta (CCR/ICCJ/CEDO), doctrina. Cea mai completa sursa din acest server pentru jurisprudenta ICCJ, care nu are alt tool dedicat.",
+            description="Cautare full-text pe sintact.ro (Wolters Kluwer, cont abonat): legislatie, "
+                        "jurisprudenta, doctrina. Filtrarea pe categorie se face server-side, deci "
+                        "'jurisprudenta' acopera INCLUSIV hotararile instantelor nationale "
+                        "(judecatorii, tribunale, curti de apel), nu doar ce apare in Monitorul Oficial. "
+                        "Pentru o cercetare de jurisprudenta cu filtre pe instanta sau solutie, "
+                        "foloseste sintact_search_jurisprudence.",
             inputSchema={
                 "type": "object",
                 "properties": {
                     "query": {"type": "string", "description": "Termeni de cautare"},
-                    "category": {"type": "string", "enum": ["legislatie", "jurisprudenta", "doctrina"], "description": "Filtreaza client-side dupa tipul documentului (optional)"},
-                    "max_results": {"type": "integer", "description": "Numar maxim de rezultate (default 10)", "default": 10},
+                    "category": {"type": "string", "enum": ["legislatie", "jurisprudenta", "doctrina"], "description": "Fondul documentar cautat (optional; se aplica server-side)"},
+                    "max_results": {"type": "integer", "description": "Numar maxim de rezultate (default 10, maximum 100)", "default": 10},
+                    "start_from": {"type": "integer", "description": "Offset pentru paginare (default 0)", "default": 0},
+                    "sort_by_date": {"type": "boolean", "description": "Sorteaza descrescator dupa data in loc de relevanta", "default": False},
+                },
+                "required": ["query"],
+            },
+        ),
+        types.Tool(
+            name="sintact_search_jurisprudence",
+            description="PRIORITAR pentru cercetare de jurisprudenta nationala. Cauta in fondul de "
+                        "hotarari judecatoresti de pe sintact.ro (judecatorii, tribunale, curti de apel, "
+                        "ICCJ, CNSC), cu filtre reale ale platformei: instanta, tip de hotarare, solutie, "
+                        "sediu, obiect al cauzei, domeniu, stadiu procesual, interval de date. "
+                        "Returneaza pentru fiecare hotarare instanta, numarul, data, obiectul si URL-ul, "
+                        "plus nro/versionId pentru descarcarea textului integral. "
+                        "Filtrele care nu se potrivesc sunt raportate explicit in 'filtre_nepotrivite', "
+                        "deci un rezultat mai larg decat filtrul cerut nu trece neobservat.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Termeni de cautare, ex: 'Legea 295/2004 anulare permis port arma'"},
+                    "instanta": {"type": ["string", "array"], "items": {"type": "string"}, "description": "Tipul instantei: 'Curtea de Apel', 'Tribunalul', 'Judecatoria', 'ICCJ', 'CNSC'"},
+                    "tip_hotarare": {"type": ["string", "array"], "items": {"type": "string"}, "description": "'Sentinta', 'Decizie', 'Incheiere', 'Hotarare'"},
+                    "solutie": {"type": ["string", "array"], "items": {"type": "string"}, "description": "'Admis', 'Admis in parte', 'Respins', 'Achitat' etc."},
+                    "sediu": {"type": ["string", "array"], "items": {"type": "string"}, "description": "Localitatea instantei, ex: 'Bucuresti', 'Cluj', 'Timisoara'"},
+                    "obiect": {"type": ["string", "array"], "items": {"type": "string"}, "description": "Obiectul cauzei, ex: 'anulare act administrativ'"},
+                    "domeniu": {"type": ["string", "array"], "items": {"type": "string"}, "description": "'Drept penal', 'Drept administrativ', 'Drept civil' etc."},
+                    "stadiu": {"type": ["string", "array"], "items": {"type": "string"}, "description": "'Fond', 'Apel', 'Recurs' etc."},
+                    "sectie": {"type": ["string", "array"], "items": {"type": "string"}, "description": "Sectia instantei"},
+                    "data_de_la": {"type": "string", "description": "Data minima a hotararii, format YYYY-MM-DD"},
+                    "data_pana_la": {"type": "string", "description": "Data maxima a hotararii, format YYYY-MM-DD"},
+                    "sort_by_date": {"type": "boolean", "description": "Cele mai recente hotarari primele", "default": False},
+                    "max_results": {"type": "integer", "description": "Numar maxim de rezultate (default 20, maximum 100)", "default": 20},
+                    "start_from": {"type": "integer", "description": "Offset pentru paginare (default 0)", "default": 0},
+                },
+                "required": ["query"],
+            },
+        ),
+        types.Tool(
+            name="sintact_jurisprudence_filters",
+            description="Listeaza filtrele DISPONIBILE pentru o cautare de jurisprudenta pe sintact.ro, "
+                        "cu etichetele exacte si numarul de hotarari pentru fiecare (instante, tipuri de "
+                        "hotarare, solutii, sedii, obiecte ale cauzei, domenii). Apeleaza acest tool "
+                        "INAINTE de a filtra, ca filtrele sa fie alese din valori reale, nu ghicite.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Termenii cautarii pentru care vrei filtrele"},
                 },
                 "required": ["query"],
             },
         ),
         types.Tool(
             name="sintact_fetch_document",
-            description="Descarca textul integral al unui document de pe sintact.ro, dupa nro/versionId (obtinute din sintact_search sau sintact_verify_citation).",
+            description="Descarca textul integral al unui document de pe sintact.ro dupa nro/versionId "
+                        "(obtinute din sintact_search, sintact_search_jurisprudence sau "
+                        "sintact_verify_citation). Merge si pentru acte normative, si pentru hotarari "
+                        "judecatoresti, inclusiv considerentele complete.",
             inputSchema={
                 "type": "object",
                 "properties": {
                     "nro": {"type": "integer", "description": "Identificatorul intern al documentului (camp 'nro')"},
                     "versionId": {"type": "integer", "description": "Versiunea documentului (camp 'versionId')"},
+                    "max_chars": {"type": "integer", "description": "Limiteaza textul returnat (0 = integral)", "default": 0},
                 },
                 "required": ["nro", "versionId"],
             },
         ),
         types.Tool(
             name="lege5_search",
-            description="LEGACY. Căutare full-text pe lege5.ro (vechea platforma Indaco). Folosiți lege6_search ca sursa primara.",
+            description="LEGACY, ultima rezervă. Căutare full-text pe lege5.ro (vechea platformă Indaco). "
+                        "Sursa primară este sintact.ro. Contul lege5 poate să nu fie configurat.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -287,26 +393,46 @@ async def list_tools():
         ),
     ]
 
+    rank = {name: i for i, name in enumerate(_TOOL_ORDER)}
+    return sorted(tools, key=lambda t: rank.get(t.name, len(rank)))
+
 
 # ── TOOL IMPLEMENTATIONS ─────────────────────────────────────────────────────
 
+# ORDINEA SURSELOR COMERCIALE (stabilita 2026-07-27)
+#   sintact.ro se interogheaza intotdeauna primul: abonamentul e activ, sesiunea se
+#   autentifica si acopera legislatia, jurisprudenta nationala si doctrina.
+#   lege6.ro si lege5.ro se incearca DOAR daca sesiunea sintact nu se ridica, fiindca
+#   nu au credentiale valide (claude_desktop_config.json le tine pe placeholder) si
+#   altfel ar consuma timp esuand tacut inaintea sursei care functioneaza.
+#   legislatie.just.ro ramane pe pozitia a doua, ca sursa oficiala publica; ordinea
+#   ceruta priveste doar raportul dintre sintact, lege5 si lege6.
+
+
+def _sintact_unavailable(result: dict) -> bool:
+    """Sesiunea sintact a cazut, deci sursele de rezerva devin justificate.
+    Decizia negasita pe o sesiune sanatoasa NU intra aici: ea inseamna ca sintact a
+    raspuns si nu are documentul, iar lege5/lege6 nu au cum sa fie mai bogate."""
+    return bool(result.get("auth_failed"))
+
+
 async def _search_ccr_both(number: int, year: int) -> dict:
-    """Search CCR with priority: lege6.ro -> legislatie.just.ro -> lege5.ro.
-
-    lege6.ro contine legislatia si jurisprudenta cea mai actualizata (Indaco Systems).
-    Fallback: legislatie.just.ro (oficial). Final fallback: lege5.ro.
-    """
+    """Cauta o decizie CCR: sintact.ro -> legislatie.just.ro -> (lege6/lege5, doar
+    daca autentificarea sintact a esuat)."""
     errors = []
+    sintact_down = False
 
-    # 1. Lege6.ro (PRIORITAR - cea mai actualizata sursa)
+    # 1. sintact.ro (PRIORITAR, abonament activ)
     try:
-        result = await lege6_search_ccr(lege6_session, number, year)
+        result = await sintact_search_ccr(sintact_session, number, year)
         if result.get("found"):
             return result
-        errors.append(("lege6.ro", "decizia nu a fost gasita"))
+        sintact_down = _sintact_unavailable(result)
+        errors.append(("sintact.ro", result.get("error", "decizia nu a fost gasita")))
     except Exception as e:
-        logger.warning("lege6.ro unavailable: %s", e)
-        errors.append(("lege6.ro", str(e)))
+        logger.warning("sintact.ro unavailable: %s", e)
+        sintact_down = True
+        errors.append(("sintact.ro", str(e)))
 
     # 2. legislatie.just.ro (oficial, public)
     try:
@@ -321,16 +447,24 @@ async def _search_ccr_both(number: int, year: int) -> dict:
     except Exception as e:
         errors.append(("legislatie.just.ro", str(e)))
 
-    # 3. Lege5.ro (legacy fallback)
-    try:
-        result = await lege5_search_ccr(lege5_session, number, year)
-        if isinstance(result, dict) and result.get("found"):
-            return result
-        errors.append(("lege5.ro", "decizia nu a fost gasita"))
-        return result
-    except Exception as e:
-        errors.append(("lege5.ro", str(e)))
-        return {"found": False, "errors": errors, "error": "Decizia nu a fost gasita pe niciuna din sursele disponibile."}
+    # 3. Rezerva Indaco, numai cu sintact cazut.
+    if not sintact_down:
+        return {"found": False, "errors": errors,
+                "error": f"Decizia CCR nr. {number}/{year} nu a fost gasita pe sintact.ro "
+                         f"si nici pe legislatie.just.ro."}
+
+    for label, fn, session in (("lege6.ro", lege6_search_ccr, lege6_session),
+                               ("lege5.ro", lege5_search_ccr, lege5_session)):
+        try:
+            result = await fn(session, number, year)
+            if isinstance(result, dict) and result.get("found"):
+                return result
+            errors.append((label, "decizia nu a fost gasita"))
+        except Exception as e:
+            errors.append((label, str(e)))
+
+    return {"found": False, "errors": errors,
+            "error": "Decizia nu a fost gasita pe niciuna din sursele disponibile."}
 
 
 # Peste acest prag lotul depaseste fereastra de asteptare a clientului MCP
@@ -353,6 +487,13 @@ async def _batch_verify(decisions: list) -> list:
     """
     sem = asyncio.Semaphore(BATCH_CONCURRENCY)
 
+    def _looks_like_ccr(text: str) -> bool:
+        """Textul chiar provine de la Curtea Constitutionala? Acelasi numar de decizie
+        exista in acelasi an la ICCJ, Guvern sau prim-ministru. Cautarea merge pe text
+        pliat, deci nu depinde de grafia diacriticelor din sursa."""
+        head = fold_diacritics((text or "")[:4000])
+        return "curtea constitutionala" in head or "neconstitutionalitate" in head
+
     async def official(dec: dict) -> tuple:
         async with sem:
             try:
@@ -366,6 +507,14 @@ async def _batch_verify(decisions: list) -> list:
 
     results = []
     for dec, text in fetched:
+        if text and not _looks_like_ccr(text):
+            # Cautarea dupa numar pe just.ro confunda emitentii: pe "358/2022" a intors
+            # o decizie de numire a unui secretar de stat. Un text care nu poarta semnul
+            # Curtii ar produce un verdict INCORRECT pe o citare reala, deci se arunca
+            # si se reia pe lantul complet, care incepe cu sintact.
+            logger.info("batch %s/%s: textul just.ro nu pare decizie CCR, reiau pe lantul complet",
+                        dec["number"], dec["year"])
+            text = ""
         if not text:
             # Rezerva completa, inclusiv caile prin browser, care se serializeaza.
             try:
@@ -383,18 +532,22 @@ async def _batch_verify(decisions: list) -> list:
 
 
 async def _fetch_ccr_text_both(number: int, year: int) -> dict:
-    """Fetch CCR text with priority: lege6.ro -> legislatie.just.ro -> lege5.ro."""
+    """Descarca textul unei decizii CCR, cu aceeasi ordine ca `_search_ccr_both`:
+    sintact.ro -> legislatie.just.ro -> (lege6/lege5, doar cu sintact cazut)."""
     errors = []
+    sintact_down = False
 
-    # 1. Lege6.ro PRIORITAR
+    # 1. sintact.ro PRIORITAR
     try:
-        result = await lege6_fetch_ccr(lege6_session, number, year)
+        result = await sintact_fetch_ccr(sintact_session, number, year)
         if result.get("text"):
             return result
-        errors.append(("lege6.ro", result.get("error", "fara text")))
+        sintact_down = _sintact_unavailable(result)
+        errors.append(("sintact.ro", result.get("error", "fara text")))
     except Exception as e:
-        logger.warning("lege6.ro fetch error: %s", e)
-        errors.append(("lege6.ro", str(e)))
+        logger.warning("sintact.ro fetch error: %s", e)
+        sintact_down = True
+        errors.append(("sintact.ro", str(e)))
 
     # 2. legislatie.just.ro
     try:
@@ -408,14 +561,20 @@ async def _fetch_ccr_text_both(number: int, year: int) -> dict:
     except Exception as e:
         errors.append(("legislatie.just.ro", str(e)))
 
-    # 3. Lege5.ro
-    try:
-        result = await lege5_fetch_ccr(lege5_session, number, year)
-        if result.get("text"):
-            return result
-        errors.append(("lege5.ro", result.get("error", "fara text")))
-    except Exception as e:
-        errors.append(("lege5.ro", str(e)))
+    # 3. Rezerva Indaco, numai cu sintact cazut.
+    if not sintact_down:
+        return {"text": "", "errors": errors,
+                "error": "Textul deciziei nu a putut fi extras de pe sintact.ro sau legislatie.just.ro."}
+
+    for label, fn, session in (("lege6.ro", lege6_fetch_ccr, lege6_session),
+                               ("lege5.ro", lege5_fetch_ccr, lege5_session)):
+        try:
+            result = await fn(session, number, year)
+            if result.get("text"):
+                return result
+            errors.append((label, result.get("error", "fara text")))
+        except Exception as e:
+            errors.append((label, str(e)))
 
     return {"text": "", "errors": errors, "error": "Textul deciziei nu a putut fi extras din nicio sursa."}
 
@@ -478,11 +637,18 @@ def _verify_citation(text: str, claimed_subject: str, claimed_principle: Optiona
         r'asupra\s+(?:admiterii|respingerii|admisibilității)[\s]+(.{30,200})',
     ]
 
+    # Se ia potrivirea cea mai APROPIATA de inceputul textului, nu prima din lista de
+    # tipare. Titlul deciziei deschide documentul ("... referitoare la exceptia de
+    # neconstitutionalitate a ..."), insa tiparul cu 'privind' apare mai devreme in
+    # lista si prindea numele legii criticate din considerente, de unde subiecte
+    # extrase gresit si verdicte INCORRECT pe citari perfect reale.
+    best = None
     for p in subject_patterns:
         match = re.search(p, intro)
-        if match:
-            actual_subject = match.group(1).strip()[:200]
-            break
+        if match and (best is None or match.start() < best.start()):
+            best = match
+    if best:
+        actual_subject = best.group(1).strip()[:200]
 
     if not actual_subject:
         # Fallback: first sentence after title
@@ -501,42 +667,55 @@ def _verify_citation(text: str, claimed_subject: str, claimed_principle: Optiona
         "energie": ["energiei", "energetic", "energetică"],
     }
 
+    # Sinonimele sunt scrise cu diacritice in tabel; se pliaza o data, ca sa traiasca
+    # in acelasi alfabet cu cuvintele comparate.
+    folded_synonyms = {fold_diacritics(k): {fold_diacritics(v) for v in syns}
+                       for k, syns in SYNONYMS.items()}
+
     def expand_words(words):
         expanded = set(words)
         for w in list(words):
-            for key, syns in SYNONYMS.items():
+            for key, syns in folded_synonyms.items():
                 if w == key or w in syns:
                     expanded.add(key)
                     expanded.update(syns)
         return expanded
 
-    # Compare claimed subject with actual
-    claimed_words = set(re.findall(r'\b\w{3,}\b', claimed_subject.lower()))
+    # Compararea se face pe text pliat, fara diacritice. Documentele oficiale le poarta,
+    # iar subiectul pretins vine deseori tastat fara ele; comparate ca siruri brute,
+    # 'excepţia' si 'exceptia' nu se potrivesc, iar scorul cade pana la INCORRECT pe o
+    # decizie perfect reala. Masurat pe Decizia 358/2022, 'exceptie de
+    # neconstitutionalitate' scadea de la CONFIRMED 0,70 la INCORRECT 0,00.
+    claimed_words = set(re.findall(r'\b\w{3,}\b', fold_diacritics(claimed_subject)))
     claimed_expanded = expand_words(claimed_words)
-    actual_words = set(re.findall(r'\b\w{3,}\b', actual_subject.lower()))
+    actual_words = set(re.findall(r'\b\w{3,}\b', fold_diacritics(actual_subject)))
 
     if not claimed_words:
         return {"verdict": "UNVERIFIABLE", "actual_subject": actual_subject, "relevance_score": 0.0, "evidence": ""}
 
+    # Plafonat la 1: extinderea cu sinonime poate produce mai multe potriviri decat
+    # cuvinte cerute, iar un scor de 1,4 raportat ca "relevanta" deruteaza cititorul.
     overlap = claimed_expanded & actual_words
-    score = len(overlap) / len(claimed_words) if claimed_words else 0.0
+    score = min(1.0, len(overlap) / len(claimed_words)) if claimed_words else 0.0
 
-    # Also check full text (first 10000 chars, not just 2000)
-    full_lower = text[:10000].lower()
+    # Also check full text (first 10000 chars, not just 2000). Pliat, ca si mai sus;
+    # `fold_diacritics` pastreaza lungimea, deci pozitiile raman valabile pe `text`.
+    full_lower = fold_diacritics(text[:10000])
     full_hits = sum(1 for w in claimed_expanded if w in full_lower)
-    full_score = full_hits / len(claimed_words) if claimed_words else 0.0
+    full_score = min(1.0, full_hits / len(claimed_words)) if claimed_words else 0.0
 
     combined_score = max(score, full_score * 0.7)
 
     # Check claimed principle
     principle_found = ""
     if claimed_principle:
-        if claimed_principle.lower() in full_lower:
+        folded_principle = fold_diacritics(claimed_principle)
+        if folded_principle in full_lower:
             principle_found = claimed_principle
             combined_score = min(1.0, combined_score + 0.3)
         else:
             # Fuzzy: check if most words from principle are in text
-            principle_words = set(re.findall(r'\b\w{4,}\b', claimed_principle.lower()))
+            principle_words = set(re.findall(r'\b\w{4,}\b', folded_principle))
             hits = sum(1 for w in principle_words if w in full_lower)
             if principle_words and hits / len(principle_words) > 0.6:
                 combined_score = min(1.0, combined_score + 0.2)
@@ -569,13 +748,121 @@ def _verify_citation(text: str, claimed_subject: str, claimed_principle: Optiona
 
 _NUM_ALIASES = ("act_number", "act_no", "act_nr", "nr", "numar", "număr", "decision_number")
 _YEAR_ALIASES = ("act_year", "an", "anul")
+_TYPE_ALIASES = ("type", "tip", "tip_act", "act_kind", "kind")
+_QUERY_ALIASES = ("query", "citation", "citare", "act", "act_title", "title", "titlu", "text", "q")
 _LEGISLATION_TOOLS = {"search_legislation", "fetch_article_text", "lege6_search_legislation"}
 
+# Tipurile pe care le inteleg legislatie.just.ro si lege6: forma canonica la stanga
+# apelului, oricat de liber ar fi scris tipul in cerere ('Legea', 'O.U.G.', 'H.G.').
+# Ordinea conteaza, formele lungi se testeaza inaintea celor scurte, altfel
+# "ordonanta de urgenta" ar fi citita ca simpla "ordonanta".
+_ACT_KIND_PATTERNS = (
+    (r"constitut(?:ia|ie|iei)", "constitutie"),
+    (r"ordonant[ae]\s+de\s+urgent[ae](?:\s+a\s+guvernului)?", "oug"),
+    (r"\bo\.?\s?u\.?\s?g\.?", "oug"),
+    (r"ordonant[ae](?:\s+a)?(?:\s+guvernului)?", "og"),
+    (r"\bo\.?\s?g\.?(?=\W|$)", "og"),
+    (r"hotarare[a]?(?:\s+(?:de\s+)?guvernului?)?", "hg"),
+    (r"\bh\.?\s?g\.?", "hg"),
+    (r"\bleg(?:ea|ii|e)\b", "lege"),
+    (r"\bl\.?\s*(?=nr\.?|\d)", "lege"),
+    (r"\bordin(?:ul)?\b", "ordin"),
+    (r"\bcod(?:ul|ului)?\b", "cod"),
+    (r"\bdecret(?:ul)?\b", "decret"),
+)
 
-def _normalize_args(args: dict) -> dict:
-    """Accepta aliasurile pe care modelul le trimite frecvent (act_number/act_year)
-    si coercitioneaza numerele date ca text ('334' -> 334). Fara acest strat,
-    apeluri corecte semantic esueaza pe nepotriviri de nume/tip."""
+_NUM_YEAR_RE = re.compile(r"\b(\d{1,5})\s*[/\-]\s*((?:1[89]|20)\d{2})\b")
+_NUM_DIN_YEAR_RE = re.compile(r"\bnr\.?\s*(\d{1,5})\b\D{1,25}?\b((?:1[89]|20)\d{2})\b")
+_ART_RE = re.compile(r"\bart(?:icolul|\.|\b)\s*(\d{1,4})")
+_ALIN_RE = re.compile(r"\balin(?:eatul|\.|\b)\s*\(?\s*(\d{1,3})\s*\)?")
+_LIT_RE = re.compile(r"\blit(?:era|\.|\b)\s*\(?\s*([a-z])\s*\)?")
+
+
+def _canon_act_type(value) -> Optional[str]:
+    """Pliaza orice scriere a tipului de act pe forma canonica ceruta de clienti."""
+    if value is None:
+        return None
+    folded = fold_diacritics(str(value)).strip()
+    if not folded:
+        return None
+    for pattern, canon in _ACT_KIND_PATTERNS:
+        if re.fullmatch(pattern, folded) or re.fullmatch(pattern + r"\.?", folded):
+            return canon
+    for pattern, canon in _ACT_KIND_PATTERNS:
+        if re.search(pattern, folded):
+            return canon
+    return folded.lower()
+
+
+def _parse_citation(text) -> dict:
+    """Sparge o citare scrisa in text liber ('art. 3 alin. (2) din Legea 58/2023')
+    in campurile pe care le asteapta clientii. Modelul cheama tool-urile de
+    legislatie ca pe orice alta cautare, cu un singur sir, iar fara pasul asta
+    apelul cadea pe validarea de schema inainte sa ajunga la server."""
+    out: dict = {}
+    if not text:
+        return out
+    t = fold_diacritics(str(text))
+
+    m = _NUM_YEAR_RE.search(t) or _NUM_DIN_YEAR_RE.search(t)
+    if m:
+        out["number"] = int(m.group(1))
+        out["year"] = int(m.group(2))
+
+    # Tipul actului e cel scris cel mai aproape INAINTEA numarului: in "lege de
+    # aprobare a OUG 155/2024" numarul apartine ordonantei, nu legii.
+    limit = m.start() if m else len(t)
+    best = None
+    for pattern, canon in _ACT_KIND_PATTERNS:
+        for hit in re.finditer(pattern, t):
+            if hit.start() >= limit:
+                continue
+            key = (hit.start(), hit.end() - hit.start())
+            if best is None or key > best[0]:
+                best = (key, canon)
+    if best is None and not m:
+        for pattern, canon in _ACT_KIND_PATTERNS:
+            hit = re.search(pattern, t)
+            if hit:
+                best = (((hit.start(), hit.end() - hit.start())), canon)
+                break
+    if best is not None:
+        out["act_type"] = best[1]
+
+    m_art = _ART_RE.search(t)
+    if m_art:
+        out["article"] = int(m_art.group(1))
+        m_alin = _ALIN_RE.search(t, m_art.end())
+        if m_alin:
+            out["alineat"] = int(m_alin.group(1))
+        m_lit = _LIT_RE.search(t, m_art.end())
+        if m_lit:
+            out["litera"] = m_lit.group(1)
+    return out
+
+
+def _dedupe_candidates(items) -> list:
+    """Lista de candidati e ceruta ca sa aleaga modelul, deci randurile de navigare
+    ('Vizualizeaza') si acelasi doc_id repetat nu au ce cauta in ea."""
+    seen, out = set(), []
+    for it in items or []:
+        if not isinstance(it, dict):
+            continue
+        title = str(it.get("title", "")).strip()
+        if fold_diacritics(title) in ("vizualizeaza", ""):
+            continue
+        key = it.get("doc_id") or it.get("url") or title
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(it)
+    return out
+
+
+def _normalize_args(args: dict, name: str = "") -> dict:
+    """Accepta aliasurile pe care modelul le trimite frecvent (act_number/act_year),
+    citarea data ca text liber, si coercitioneaza numerele date ca text ('334' -> 334).
+    Fara acest strat, apeluri corecte semantic esueaza pe nepotriviri de nume/tip."""
     if not isinstance(args, dict):
         return args
     a = dict(args)
@@ -589,26 +876,66 @@ def _normalize_args(args: dict) -> dict:
             if a.get(alt) is not None:
                 a["year"] = a[alt]
                 break
+    if a.get("act_type") is None:
+        for alt in _TYPE_ALIASES:
+            if a.get(alt) is not None:
+                a["act_type"] = a[alt]
+                break
     for k in ("number", "year", "article", "alineat", "limit", "max_results"):
         v = a.get(k)
         if isinstance(v, str) and v.strip().lstrip("-").isdigit():
             a[k] = int(v)
+
+    if name in _LEGISLATION_TOOLS:
+        free_text = next((a[k] for k in _QUERY_ALIASES if isinstance(a.get(k), str) and a[k].strip()), None)
+        if free_text:
+            a["query"] = free_text
+            parsed = _parse_citation(free_text)
+            for k, v in parsed.items():
+                if a.get(k) in (None, ""):
+                    a[k] = v
+        a["act_type"] = _canon_act_type(a.get("act_type"))
+        if a.get("act_type") is None:
+            a.pop("act_type", None)
     return a
 
 
 @app.call_tool()
 async def call_tool(name: str, arguments: dict):
     try:
-        arguments = _normalize_args(arguments)
+        arguments = _normalize_args(arguments, name)
         if name in _LEGISLATION_TOOLS:
-            if arguments.get("number") is None or arguments.get("year") is None:
+            # Constitutia nu are numar si an, se identifica prin doc_id fix, deci
+            # cerinta de number/year nu i se aplica.
+            if arguments.get("act_type") == "constitutie":
+                arguments.setdefault("number", 0)
+                arguments.setdefault("year", 1991)
+
+            missing = [k for k in ("act_type", "number", "year") if arguments.get(k) in (None, "")]
+            if name == "fetch_article_text" and arguments.get("article") in (None, ""):
+                missing.append("article")
+
+            if missing:
                 # Recuperare eleganta: in loc de eroare seaca, cautam full-text dupa
                 # indiciile disponibile si intoarcem candidati cu an, ca modelul sa reapeleze precis.
+                number, year = arguments.get("number"), arguments.get("year")
                 hint = (arguments.get("query") or " ".join(
-                    str(arguments[k]) for k in ("act_type", "number") if arguments.get(k) is not None
+                    str(arguments[k]) for k in ("act_type", "number", "year") if arguments.get(k) is not None
                 )).strip()
                 candidates = []
-                if hint:
+                # Cand numarul si anul se stiu, dar nu si tipul, cautarea pe campurile
+                # structurate ale formularului intoarce chiar actele cu acel numar din
+                # acel an, in loc de zgomotul unei cautari de text dupa "58 2023".
+                structured = number is not None and year is not None
+                if structured:
+                    try:
+                        candidates = await search_document(
+                            query=str(arguments.get("act_type") or ""),
+                            doc_number=str(number), date_from=str(year), date_to=str(year),
+                        )
+                    except Exception:
+                        candidates = []
+                if not candidates and hint:
                     # Intai sursa nativa a tool-ului (lege6, autentificat), apoi just.ro public.
                     if name.startswith("lege6"):
                         try:
@@ -621,12 +948,17 @@ async def call_tool(name: str, arguments: dict):
                             candidates = await search_document(hint)
                         except Exception:
                             candidates = []
-                    candidates = (candidates or [])[:8]
+                candidates = _dedupe_candidates(candidates)[:8]
                 return [types.TextContent(type="text", text=json.dumps({
-                    "note": "Lipsea 'year' (sau 'number'). Am căutat full-text după indiciile date. "
-                            "Alege actul potrivit din 'candidates' și reapelează cu number+year ca întregi.",
+                    "note": "Apelul a fost incomplet, lipsea " + ", ".join(f"'{k}'" for k in missing) +
+                            ". Am căutat full-text după indiciile date. Alege actul potrivit din "
+                            "'candidates' și reapelează cu act_type + number + year, sau trimite "
+                            "citarea întreagă în 'query' (ex: 'Legea 58/2023').",
+                    "missing": missing,
                     "query_used": hint,
                     "candidates": candidates,
+                    "resolved": {k: arguments.get(k) for k in ("act_type", "number", "year", "article")
+                                 if arguments.get(k) is not None},
                     "received_keys": sorted(arguments.keys()),
                 }, ensure_ascii=False, indent=2))]
 
@@ -717,11 +1049,38 @@ async def call_tool(name: str, arguments: dict):
                 arguments["query"],
                 arguments.get("category"),
                 arguments.get("max_results", 10),
+                arguments.get("start_from", 0),
+                arguments.get("sort_by_date", False),
             )
             return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]
 
+        elif name == "sintact_search_jurisprudence":
+            result = await sintact_search_jurisprudence_fn(
+                sintact_session,
+                arguments["query"],
+                instanta=arguments.get("instanta"),
+                tip_hotarare=arguments.get("tip_hotarare"),
+                solutie=arguments.get("solutie"),
+                sediu=arguments.get("sediu"),
+                obiect=arguments.get("obiect"),
+                domeniu=arguments.get("domeniu"),
+                stadiu=arguments.get("stadiu"),
+                sectie=arguments.get("sectie"),
+                data_de_la=arguments.get("data_de_la"),
+                data_pana_la=arguments.get("data_pana_la"),
+                sort_by_date=arguments.get("sort_by_date", False),
+                max_results=arguments.get("max_results", 20),
+                start_from=arguments.get("start_from", 0),
+            )
+            return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]
+
+        elif name == "sintact_jurisprudence_filters":
+            result = await sintact_facets_fn(sintact_session, arguments["query"])
+            return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]
+
         elif name == "sintact_fetch_document":
-            result = await sintact_fetch_doc(sintact_session, arguments["nro"], arguments["versionId"])
+            result = await sintact_fetch_doc(sintact_session, arguments["nro"], arguments["versionId"],
+                                             arguments.get("max_chars", 0))
             return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]
 
         elif name == "lege5_search":
