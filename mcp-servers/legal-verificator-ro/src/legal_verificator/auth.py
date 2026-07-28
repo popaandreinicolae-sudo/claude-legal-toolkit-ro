@@ -293,15 +293,76 @@ class SintactSession(_IndacoSession):
     base = SINTACT_BASE
     state_file = "sintact_state.json"
 
+    _WK_SSO = "autentificare.wolterskluwer.ro"
+
     def __init__(self):
         super().__init__()
         self._email = os.environ.get("SINTACT_EMAIL", "")
         self._password = os.environ.get("SINTACT_PASSWORD", "")
 
+    async def _pass_session_gate(self, page) -> bool:
+        """Trece de poarta de sesiune a SSO-ului Wolters Kluwer.
+
+        Licenta Expert Plus permite o singura sesiune activa pe cont. Cand mai exista
+        una deschisa (browserul utilizatorului sau o rulare anterioara a serverului),
+        login-ul REUSESTE dar se opreste pe Products/FreeAccess.ashx, cu un modal
+        informativ peste tile-ul produsului. Verificarea de dinainte se uita doar la
+        domeniul din URL si citea oprirea asta ca esec de autentificare, desi contul
+        era deja logat, de unde "Autentificare sintact.ro esuata" cu parola corecta.
+        Eliberam accesul si continuam catre sintact.ro.
+        """
+        # Eliberarea accesului si intrarea in produs sunt doi pasi distincti: dupa
+        # CloseSessionAndProceed.ashx poarta poate reafisa lista de produse, deci
+        # reluam ciclul in loc sa raportam esec dupa prima trecere.
+        for _ in range(3):
+            if self._WK_SSO not in page.url.lower():
+                return True
+            # Modalul jQuery UI e o suprapunere modala: tile-ul de dedesubt nu
+            # primeste click cat timp e deschis, deci il inchidem intai.
+            for sel in ("button:has-text('ok')", ".ui-dialog-titlebar-close"):
+                try:
+                    await page.click(sel, timeout=2000)
+                    break
+                except Exception:
+                    pass
+            await page.wait_for_timeout(500)
+            # Ordinea conteaza. release-access-action duce la CloseSessionAndProceed.ashx,
+            # care inchide sesiunea concurenta si intra in produs; tile-ul simplu doar
+            # reincearca accesul si reafiseaza acelasi modal.
+            target = None
+            for sel in ("a.release-access-action", "div.clickable-product-items-container"):
+                if await page.locator(sel).count() > 0:
+                    target = sel
+                    break
+            if target is None:
+                return False
+            try:
+                await page.click(target, timeout=5000)
+            except Exception:
+                pass
+            for _ in range(8):
+                await page.wait_for_timeout(1500)
+                if self._WK_SSO not in page.url.lower():
+                    logger.info("Sintact: sesiune concurenta inchisa, acces eliberat")
+                    return True
+            # Accesul e eliberat, dar am ramas pe poarta: reintram pe sintact.ro.
+            try:
+                await page.goto(SINTACT_BASE, timeout=45000)
+                await page.wait_for_timeout(2500)
+            except Exception:
+                pass
+        return self._WK_SSO not in page.url.lower()
+
     async def _is_logged_in(self, page) -> bool:
         await page.goto(SINTACT_BASE, timeout=45000)
         await page.wait_for_timeout(1500)
-        return "autentificare.wolterskluwer.ro" not in page.url.lower()
+        if self._WK_SSO not in page.url.lower():
+            return True
+        # Formularul de parola vizibil inseamna sesiune expirata, deci login complet.
+        # Fara el suntem doar in poarta de sesiune, cu contul inca autentificat.
+        if await page.locator('input[name="password"]').count() > 0:
+            return False
+        return await self._pass_session_gate(page)
 
     async def _do_login(self, page) -> bool:
         if not self._email or not self._password:
@@ -315,11 +376,14 @@ class SintactSession(_IndacoSession):
                 await page.click("button:has-text('Accept')", timeout=3000)
             except Exception:
                 pass
-            await page.fill('input[name="login"]', self._email)
-            await page.fill('input[name="password"]', self._password)
-            await page.click("#login_btn")
-            await page.wait_for_timeout(4000)
-            ok = "autentificare.wolterskluwer.ro" not in page.url.lower()
+            # Cu storage_state reincarcat putem ateriza direct in poarta de sesiune,
+            # fara formular; completarea oarba ar arunca atunci timeout pe fill.
+            if await page.locator('input[name="login"]').count() > 0:
+                await page.fill('input[name="login"]', self._email)
+                await page.fill('input[name="password"]', self._password)
+                await page.click("#login_btn")
+                await page.wait_for_timeout(4000)
+            ok = await self._pass_session_gate(page)
             if ok:
                 logger.info("Sintact.ro login successful")
             else:
