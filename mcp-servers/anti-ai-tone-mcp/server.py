@@ -204,7 +204,7 @@ def format_suggestions(data: dict) -> str:
             terms = ', '.join(o.get('marker', '') for o in offenders[:5])
             suggestions.append(
                 f"9. Inlocuieste termenii AI-vocab supraused: {terms}. "
-                f"Vezi lista neagra completa in ~/.claude/skills/anti-ai-tone.md."
+                f"Lista neagra completa: instrumentul get_skill_rules, sau {SKILL_PATH}."
             )
     if metrics.get('em_dash', {}).get('above_threshold'):
         suggestions.append(

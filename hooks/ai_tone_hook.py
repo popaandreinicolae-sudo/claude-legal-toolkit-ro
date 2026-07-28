@@ -110,7 +110,10 @@ def main() -> int:
     if issues:
         msg.append("Probleme detectate:")
         msg.extend(issues)
-    msg.append(f"Reaplicare reguli din ~/.claude/skills/anti-ai-tone.md recomandata.")
+    # Calea se calculeaza din pozitia hook-ului. Varianta fixa ~/.claude/skills/
+    # trimitea catre un fisier care nu exista acolo, deci sfatul era neurmaribil.
+    skill_rules = SCRIPT_DIR.parent / 'skills' / 'anti-ai-tone.md'
+    msg.append(f"Reaplica regulile din {skill_rules} (sau instrumentul MCP get_skill_rules).")
     print('\n'.join(msg), file=sys.stderr)
     return 0
 

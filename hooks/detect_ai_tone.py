@@ -155,6 +155,15 @@ TRUISMS_RO = [
     'tehnologia evolueaza rapid', 'schimbarea este inevitabila',
     'comunicarea este esentiala', 'datele sunt noul petrol',
     'pe masura ce', 'in ultima perioada', 'devine din ce in ce mai',
+    # Echivalentele romanesti ale umpluturii deja listate in AI_WORDS_EN
+    # ("it's important to note", "it's worth noting", "it bears mentioning").
+    # Lipsa lor lasa forma dominanta din textele romanesti nedetectata.
+    'este important de mentionat', 'este important de subliniat',
+    'este important de retinut', 'merita mentionat', 'merita subliniat',
+    'merita notat', 'trebuie mentionat ca', 'trebuie subliniat ca',
+    'trebuie remarcat', 'de retinut ca', 'este demn de remarcat',
+    'nu este lipsit de importanta', 'se cuvine a fi mentionat',
+    'este de la sine inteles',
 ]
 
 TRUISMS_EN = [
@@ -288,9 +297,13 @@ def count_colons(text):
 
 
 def detect_label_colon_pattern(text):
+    # Prefixul de lista este OPTIONAL. Forma dominanta in textele generate este
+    # eticheta la inceput de paragraf ("**Context:** ..."), nu cea din enumerare,
+    # iar REGULA 0 o interzice pe amandoua.
+    prefix = r'^[ \t]*(?:[\*\-\+]\s+|\d+[.)]\s+)?'
     patterns = [
-        r'^[\*\-\+]\s+\*\*[^*]+:\*\*',
-        r'^[\*\-\+]\s+\*\*[^*\n]+\*\*\s*:\s*',
+        prefix + r'\*\*[^*\n]+:\*\*',
+        prefix + r'\*\*[^*\n]+\*\*\s*:\s',
     ]
     count = 0
     for pattern in patterns:
@@ -303,22 +316,34 @@ def detect_label_colon_pattern(text):
 
 
 def detect_negative_parallelisms(text):
+    # Forma canonica romaneasca este "nu X, ci Y", indiferent de verb si de pozitia
+    # negatiei in fraza. Vechiul tipar cerea "nu este ... este" si o prindea doar
+    # accidental, prin "e" din prepozitii ("de", "pe"), ratand restul constructiilor.
     patterns = [
-        r'(?:nu\s+(?:este|e)\s+\w+[^.]*?(?:este|e)\s+\w+)',
-        r'(?:nu\s+doar\s+\w+[^.]*?ci\s+\w+)',
+        r'\bnu\s+(?:doar|numai|at[aâ]t)\b[^.\n]{1,80}?\b(?:ci|c[aâ]t)\b',
+        r'\bnu\s+[^.,;:\n]{1,60},\s*ci\b',
+        r'\bnu\s+(?:este|sunt|era|erau)\b[^.\n]{1,80}\.\s+(?:Este|Sunt|Era|Erau)\b',
         r"(?:it'?s\s+not\s+\w+[^.]*?it'?s\s+\w+)",
         r'(?:not\s+just\s+\w+[^.]*?but\s+\w+)',
         r'(?:not\s+only\s+\w+[^.]*?but\s+\w+)',
         r'(?:no\s+\w+[\s.,]+no\s+\w+[\s.,]+no\s+\w+)',
         r'(?:niciun\s+\w+[\s.,]+niciun\s+\w+)',
     ]
-    count = 0
+    spans = []
     for pattern in patterns:
-        count += len(re.findall(pattern, text, re.IGNORECASE))
+        for m in re.finditer(pattern, text, re.IGNORECASE):
+            spans.append((m.start(), m.end()))
+    # Tiparele se suprapun pe aceeasi constructie, deci numaram intervale disjuncte.
+    count, last_end = 0, -1
+    for start, end in sorted(spans):
+        if start >= last_end:
+            count += 1
+            last_end = end
+    # REGULA 4 cere zero paralelisme negative, deci pragul este zero, nu unu.
     return {
         'count': count,
-        'threshold': 1,
-        'above_threshold': count > 1,
+        'threshold': 0,
+        'above_threshold': count > 0,
     }
 
 
