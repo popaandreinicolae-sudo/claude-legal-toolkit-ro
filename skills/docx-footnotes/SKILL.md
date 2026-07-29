@@ -22,11 +22,57 @@ Notele de subsol noi adaugate intr-un document existent au propriul instrument,
 revizii urmarite si isi ia marimea fontului din documentul gazda. Nu reimplementa
 inserarea de note peste el.
 
+## Cum se construieste
+
+Nu porni de la un document gol. Ruleaza generatorul, care asaza intr-un singur pas tot
+ce nu se poate descrie in proza, logo-ul din antet, campurile de numerotare din subsol,
+culoarea din stilurile de titlu.
+
+```bash
+python "$HOME/.claude/skills/docx-footnotes/scripts/creeaza_document.py" \
+    --output "cale/act.docx" --titlu "CERERE DE CHEMARE IN JUDECATA"
+```
+
+`--fara-antet` pentru un document care nu poarta antetul cabinetului. `--academic`
+pentru formatul Scolii Doctorale UB Drept. Abia dupa aceea scrii continutul in fisierul
+rezultat, cu python-docx.
+
+## Antetul si subsolul
+
+Antetul poarta logo-ul cabinetului, `assets/antet-amz.png`, latime 15,96 cm, aliniat
+stanga, la 1,96 cm de marginea de sus. Apare in 82 din 84 de acte proprii cu antet.
+
+Subsolul scrie „Pagina N din M", aliniat dreapta, Georgia 7,5 pt, la 0,71 cm de
+marginea de jos. Numerele vin din campurile `PAGE` si `NUMPAGES`, nu scrise ca text,
+altfel raman blocate la prima pagina. 94% din actele proprii au subsol, iar toate cele
+cu subsol poarta numerotarea acolo.
+
+## Titlurile
+
+Georgia 13 pt, bold, majuscule, bleumarin `#244061`, centrate la nivelul intai.
+Masurat pe titlurile din actele proprii, culoarea apare in 58% din cazuri, urmata de
+`#1F497D` cu 31%; ambele sunt acceptate la verificare.
+
+Majusculele se aplica prin stil, cu `w:caps`, nu scrise in text. Cine copiaza titlul
+primeste forma originala, iar un redline nu marcheaza diferenta de capitalizare ca
+modificare.
+
+## Numerotarea
+
+Se face automat, prin `w:numPr`, niciodata scrisa ca text in paragraf. Un numar tastat
+se strica la prima insertie si apare ca modificare intr-un redline, desi cititorul vede
+acelasi lucru.
+
+Schema masurata pe acte proprii merge pe trei niveluri, marcator pe nivelul intai,
+litera mica urmata de punct pe al doilea, cifra romana mica pe al treilea. Pentru
+structura juridica numerotata se foloseste `decimal` cu tiparul `%1.` pe primul nivel.
+
 ## Stilul de casa, masurat
 
-Valorile de mai jos vin din 136 de documente .docx proprii, ponderate dupa cate
-caractere poarta fiecare setare. Procentul arata cat de dominanta este valoarea in
-corpus, deci cat de sigur poti sa o aplici fara sa intrebi.
+Valorile de mai jos vin din cele 86 de documente cu corpul Georgia, adica actele
+proprii, separate de cele primite pe sabloane straine. Distinctia conteaza: pe intreg
+corpusul de 136 titlurile pareau Arial in 53% din cazuri, dar corelatia arata ca Arial
+venea numai din documentele cu alt font de corp. In actele proprii titlul e Georgia.
 
 | Element | Valoare | Dominanta |
 |---|---|---|
@@ -42,6 +88,11 @@ corpus, deci cat de sigur poti sa o aplici fara sa intrebi.
 | Margine stanga | 3,5 cm | 74% |
 | Margine dreapta | 1,5 cm | 72% |
 | Note de subsol | Georgia 8 pt | 97% fontul, 66% marimea |
+| Antet | logo AMZ, 15,96 cm latime, la 1,96 cm de sus | 86% au antet, 82 din 84 cu logo |
+| Subsol | „Pagina N din M", dreapta, Georgia 7,5 pt | 94% au subsol, 72% cu acest tipar |
+| Titluri | Georgia 13 pt, bold, majuscule, centrate | 59% marimea, 71% centrarea |
+| Culoare titluri | `#244061` | 58%, urmata de `#1F497D` cu 31% |
+| Numerotare | automata, prin `w:numPr` | fara exceptie in actele proprii |
 
 Interlinia „cel putin" conteaza. Word o trateaza altfel decat interlinia exacta,
 fiindca lasa randul sa creasca atunci cand un caracter mai inalt sau un indice o cer,

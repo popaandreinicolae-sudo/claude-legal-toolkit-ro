@@ -276,6 +276,88 @@ def verifica_format(z, doc, ref, rap):
             rap.avert(f"marime note {d} pt ({pct}%), stilul de casa cere {ref['fn_sz_pt']} pt")
 
 
+TITLU_CULORI = {"244061", "1F497D", "1F3864", "365F91", "2F5496"}
+WP = "{http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing}"
+
+
+def verifica_identitate(z, doc, ref, rap):
+    """Antetul cu logo, subsolul cu numerotare, titlurile bleumarin.
+
+    Astea sunt partile de stil pe care o instructiune scrisa in proza nu le poate
+    produce, fiindca traiesc in XML: imaginea din antet, campurile PAGE si NUMPAGES,
+    culoarea din stilul de titlu. De aceea le verificam separat de fonturi si margini.
+    """
+    if ref is not CASA:
+        return  # formatul academic nu poarta antetul cabinetului
+
+    nume = z.namelist()
+
+    anteturi = [n for n in nume if re.match(r"word/header\d*\.xml$", n)]
+    cu_logo = False
+    for h in anteturi:
+        r = citeste(z, h)
+        if r is None:
+            continue
+        if list(r.iter(f"{WP}extent")) or list(r.iter(f"{W}drawing")) or list(r.iter(f"{W}pict")):
+            cu_logo = True
+    if cu_logo:
+        rap.bun("antet cu logo")
+    elif anteturi:
+        rap.avert("antetul exista dar nu are logo; actele proprii il poarta in 82 din 84 de cazuri")
+    else:
+        rap.avert("documentul nu are antet; actele proprii au in 86% din cazuri")
+
+    subsoluri = [n for n in nume if re.match(r"word/footer\d*\.xml$", n)]
+    cu_numerotare = False
+    for f in subsoluri:
+        r = citeste(z, f)
+        if r is None:
+            continue
+        instr = " ".join(i.text or "" for i in r.iter(f"{W}instrText"))
+        if "PAGE" in instr:
+            cu_numerotare = True
+    if cu_numerotare:
+        rap.bun("subsol cu numerotare automata")
+    elif subsoluri:
+        rap.avert("subsolul nu are camp PAGE; un numar scris ca text nu se actualizeaza")
+    else:
+        rap.avert("documentul nu are subsol; actele proprii au in 94% din cazuri")
+
+    # Doar stilurile de titlu FOLOSITE efectiv in corp. Un document Word poarta din
+    # sablon zeci de stiluri nefolosite, Heading4-9 si variantele Char, cu culorile
+    # implicite ale temei. Numarate la gramada, ele acopera culoarea reala a titlurilor.
+    folosite = set()
+    for p in doc.iter(f"{W}p"):
+        ppr = p.find(f"{W}pPr")
+        if ppr is None:
+            continue
+        ps = val(ppr.find(f"{W}pStyle")) or ""
+        if ps.lower().startswith(("heading", "title", "titlu")) or "titl" in ps.lower():
+            folosite.add(ps)
+    if not folosite:
+        return
+
+    styles = citeste(z, "word/styles.xml")
+    culori = collections.Counter()
+    if styles is not None:
+        for s in styles.iter(f"{W}style"):
+            if (s.get(f"{W}styleId") or "") not in folosite:
+                continue
+            rpr = s.find(f"{W}rPr")
+            if rpr is None:
+                continue
+            c = val(rpr.find(f"{W}color"))
+            if c and c.upper() not in ("AUTO", "000000"):
+                culori[c.upper()] += 1
+    if not culori:
+        rap.avert("titlurile nu au culoare; stilul de casa le scrie bleumarin #244061")
+    elif set(culori) & TITLU_CULORI:
+        rap.bun(f"titluri colorate #{max(culori, key=culori.get)}")
+    else:
+        rap.avert(f"culoare de titlu neobisnuita #{max(culori, key=culori.get)}, "
+                  f"stilul de casa foloseste #244061")
+
+
 def verifica_metadate(z, doc, rap, redline):
     core = citeste(z, "docProps/core.xml")
     autor = ultim = None
@@ -412,6 +494,7 @@ def main(argv=None):
         if doc is None:
             raise SystemExit("word/document.xml lipseste, fisierul nu e un .docx valid")
         verifica_format(z, doc, ref, rap)
+        verifica_identitate(z, doc, ref, rap)
         verifica_metadate(z, doc, rap, args.redline)
         verifica_tehnic(z, doc, rap)
 
