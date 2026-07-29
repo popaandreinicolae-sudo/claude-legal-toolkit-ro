@@ -26,6 +26,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -34,7 +35,26 @@ ACASA = Path(os.path.expanduser("~")) / ".claude"
 IESIRE = REPO / "plugin"
 
 NUME = "toolkit-juridic-ro"
-VERSIUNE = "1.0.0"
+
+
+def versiune() -> str:
+    """Versiune care creste singura la fiecare commit.
+
+    Claude Desktop decide daca are ce actualiza comparand versiunile, iar butonul
+    Update ramane inactiv cand ele coincid. Un numar fix ar bloca orice reparatie
+    ulterioara in exact aceeasi capcana, asa ca il legam de numarul de commituri.
+    """
+    try:
+        n = subprocess.run(
+            ["git", "rev-list", "--count", "HEAD"],
+            cwd=REPO, capture_output=True, text=True, check=True,
+        ).stdout.strip()
+        return f"1.0.{int(n)}"
+    except Exception:  # noqa: BLE001
+        return "1.0.0"
+
+
+VERSIUNE = versiune()
 
 IGNORA = shutil.ignore_patterns(
     "__pycache__", "*.pyc", "*.bak", "*.log", "*.tmp",

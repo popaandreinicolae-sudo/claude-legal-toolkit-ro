@@ -11,6 +11,11 @@ description: >
 
 # Review pe .docx cu track changes, arhitectura care nu blocheaza documentul
 
+> **Unde livrezi, in mediu izolat.** In Cowork, documentul scris in directorul de lucru al
+> sesiunii nu poate fi deschis pe gazda, iar butonul „Open in Word" raspunde „File access
+> was denied". Scrie redline-ul intr-un folder montat de pe gazda, de regula
+> `/mnt/Desktop`. Verifica intai cu `ls /mnt`. Pe Claude Code regula nu se aplica.
+
 Acest skill este harta de sistem a fluxului care functioneaza si a fost validat in Claude Desktop
 Cowork. Explica ce se intampla in spate, in ce ordine, si de ce documentul nu se corupe si analiza nu
 se opreste inainte de final. Il folosesti impreuna cu skill-ul oficial `docx`, care aduce scripturile,

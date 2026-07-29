@@ -131,6 +131,18 @@ stilul de casa se lasa deoparte si se aplica Times New Roman 12 pt corp, 10 pt n
 2 cm dreapta. Citarile se fac dupa skill-ul `ub-drept-citation`. Treci pe formatul asta
 numai cand documentul chiar merge la o revista sau la facultate, nu implicit.
 
+## Unde scrii fisierul
+
+Cand lucrezi intr-un mediu izolat, cum e Cowork, fisierele scrise in directorul de
+lucru al sesiunii nu pot fi deschise din afara lui. Aplicatia ofera un buton „Open in
+Word", dar Word ruleaza ca proces nativ pe gazda si primeste o cale pe care nu o vede,
+deci raspunde „File access was denied".
+
+Scrie livrabilul intr-un folder montat de pe gazda. In Cowork, Desktop-ul utilizatorului
+apare ca `/mnt/Desktop`. Verifica intai ce e montat, cu `ls /mnt`, si alege de acolo.
+
+Pe suprafata Claude Code regula nu se aplica, fiindca acolo scrii direct pe disc.
+
 ## Reguli
 
 1. Documentul se scrie in romana. Engleza intra numai cand o ceri pentru documentul
