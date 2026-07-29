@@ -34,15 +34,20 @@ C:\Users\Adrian Zamfir\claude-legal-toolkit-ro\dist\toolkit-juridic-ro.zip
 Rădăcina arhivei este chiar rădăcina plugin-ului, cu `.claude-plugin`, `skills`,
 `agents` și `hooks` la primul nivel, așa cum arată un director de plugin pe disc.
 
-Calea a doua trece prin **Add marketplace**, cu directorul:
+Calea a doua trece prin **Add marketplace**, apoi **Add from a repository**. Câmpul
+acceptă doar `owner/repo` de pe GitHub sau un URL de git, deci nu primește o cale locală.
+Repo-ul privat pregătit pentru asta este:
 
 ```
-C:\Users\Adrian Zamfir\claude-legal-toolkit-ro
+adrianmzamfir-glitch/toolkit-juridic-roAZ
 ```
 
 Manifestul stă în `.claude-plugin/marketplace.json` de la rădăcina lui, iar plugin-ul se
-numește `toolkit-juridic-ro`. Avantajul acestei căi este actualizarea, marketplace-ul
-recitește directorul, în loc să ceară o arhivă nouă.
+numește `toolkit-juridic-ro`. Avantajul acestei căi este actualizarea, un singur Sync
+recitește repo-ul, în loc să ceară o arhivă nouă.
+
+Repo-ul e legat local ca al doilea remote, `personal`. `origin` rămâne repo-ul original
+al lui Andrei Nicolae Popa, pentru actualizări de la sursă.
 
 Dialogul de încărcare avertizează că plugin-urile încărcate nu sunt controlate de
 Anthropic. Firesc, este codul tău, construit din configurația ta.
