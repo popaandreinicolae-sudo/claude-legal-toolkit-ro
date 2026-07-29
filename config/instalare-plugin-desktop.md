@@ -75,6 +75,21 @@ pe suprafața asta le-ar dubla, iar hook-urile ar rula de două ori pe fiecare s
 
 ## Actualizare
 
-Când schimbi ceva în configurația de aici, rulează `sync-claude.ps1`. Pachetul se
-reconstruiește singur din ce e instalat. În Desktop reîmprospătează plugin-ul din
-aceeași pagină de setări.
+Când schimbi ceva în configurația de aici, rulează `sync-claude.ps1`, care reconstruiește
+pachetul, apoi comite și împinge în repo.
+
+În Desktop, ordinea contează și nu e cea evidentă.
+
+Butonul **Update** de pe pagina plugin-ului compară cu indexul de pe serverul Anthropic,
+iar acela recitește repo-ul de pe GitHub numai când e împins să o facă. Sincronizarea
+locală rulează la fiecare 10 minute, dar raportează „Delta: 0 to download", fiindcă
+întreabă un index încă nesincronizat. Rezultatul este un buton Update inactiv, deși
+versiunea nouă există pe GitHub.
+
+Soluția este să re-adaugi marketplace-ul, prin Add, Add marketplace, Add from a
+repository, cu aceeași adresă. Nu se creează un duplicat, se declanșează
+`addMarketplaceViaRemote`, adică o citire proaspătă. Abia apoi butonul Update se
+activează.
+
+Versiunea pachetului se calculează din numărul de commituri, `1.0.<n>`, tocmai ca fiecare
+push să produca una nouă. Un numar fix ar lasa butonul Update inactiv pentru totdeauna.

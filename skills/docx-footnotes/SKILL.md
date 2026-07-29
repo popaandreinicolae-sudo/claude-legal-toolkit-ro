@@ -24,9 +24,19 @@ inserarea de note peste el.
 
 ## Cum se construieste
 
-Nu porni de la un document gol. Ruleaza generatorul, care asaza intr-un singur pas tot
-ce nu se poate descrie in proza, logo-ul din antet, campurile de numerotare din subsol,
-culoarea din stilurile de titlu.
+Nu porni de la un document gol si nu reconstrui formatul din parametri. Pleaca de la
+sablon.
+
+`assets/sablon-casa.docx` este un act real al cabinetului, golit de continut de
+`tools/build_sablon.py`. Pornind de la el, formatul vine intreg prin constructie, cele
+115 definitii de stil, numerotarea pe niveluri, tema cu paleta ei, relatiile dintre
+sectiune si anteturi.
+
+Motivul e o lectie platita. Prima varianta reconstruia totul din valori masurate si
+suna corect, dar a pierdut `w:titlePg`, deci logo-ul se repeta pe fiecare pagina in loc
+sa apara doar pe prima. Un .docx poarta mai mult decat se poate masura si rescrie.
+
+Ruleaza generatorul:
 
 ```bash
 python "$HOME/.claude/skills/docx-footnotes/scripts/creeaza_document.py" \
@@ -39,8 +49,16 @@ rezultat, cu python-docx.
 
 ## Antetul si subsolul
 
-Antetul poarta logo-ul cabinetului, `assets/antet-amz.png`, latime 15,96 cm, aliniat
-stanga, la 1,96 cm de marginea de sus. Apare in 82 din 84 de acte proprii cu antet.
+**Antetul apare numai pe prima pagina.** Toate cele 86 de acte proprii poarta `w:titlePg`,
+iar referinta de antet e de tip `first` in 84 dintre ele, fara antet implicit. Subsolul,
+in schimb, apare pe toate paginile, cu referinte `first` si `default`.
+
+Antetul poarta logo-ul cabinetului, latime 15,96 cm, aliniat stanga, la 1,96 cm de
+marginea de sus. Apare in 82 din 84 de acte proprii cu antet. Vine din sablon, nu se
+insereaza de mana.
+
+Pentru un document intern, fara logo, foloseste `--fara-antet`. Scoate numai referinta
+catre antet; subsolul si asezarea in pagina raman neatinse.
 
 Subsolul scrie „Pagina N din M", aliniat dreapta, Georgia 7,5 pt, la 0,71 cm de
 marginea de jos. Numerele vin din campurile `PAGE` si `NUMPAGES`, nu scrise ca text,

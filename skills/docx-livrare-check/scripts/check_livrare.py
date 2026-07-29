@@ -300,8 +300,23 @@ def verifica_identitate(z, doc, ref, rap):
             continue
         if list(r.iter(f"{WP}extent")) or list(r.iter(f"{W}drawing")) or list(r.iter(f"{W}pict")):
             cu_logo = True
-    if cu_logo:
-        rap.bun("antet cu logo")
+    # Antetul se pune numai pe prima pagina. Toate cele 86 de acte proprii au `titlePg`,
+    # iar referinta de antet e de tip `first` in 84 dintre ele, fara antet implicit.
+    # Un logo repetat pe fiecare pagina se vede imediat si nu e forma casei.
+    sect = doc.find(f"{W}body/{W}sectPr")
+    tipuri = set()
+    prima_diferita = False
+    if sect is not None:
+        prima_diferita = sect.find(f"{W}titlePg") is not None
+        tipuri = {r.get(f"{W}type") for r in sect.findall(f"{W}headerReference")}
+
+    if cu_logo and prima_diferita and "default" not in tipuri:
+        rap.bun("antet cu logo, doar pe prima pagina")
+    elif cu_logo and not prima_diferita:
+        rap.avert("antetul se repeta pe fiecare pagina; lipseste w:titlePg, "
+                  "iar actele proprii il poarta doar pe prima")
+    elif cu_logo and "default" in tipuri:
+        rap.avert("exista si antet implicit, deci logo-ul apare si pe paginile urmatoare")
     elif anteturi:
         rap.avert("antetul exista dar nu are logo; actele proprii il poarta in 82 din 84 de cazuri")
     else:
