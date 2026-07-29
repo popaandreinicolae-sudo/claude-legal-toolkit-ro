@@ -87,6 +87,31 @@ def curata_proprietatile(xml: bytes) -> bytes:
     return ET.tostring(root, encoding="UTF-8", xml_declaration=True)
 
 
+def reseteaza_numerotarea(xml: bytes) -> bytes:
+    """Aduce fiecare flux de numerotare la inceput.
+
+    Actul-sursa continua numerotarea din locul in care ajunsese, deci `w:start` ramane
+    la valoarea de acolo. Sablonul mostenea asta si primul paragraf al unui act nou
+    aparea ca [21]. Un sablon numeroteaza mereu de la inceput, deci punem `start` pe 1
+    la nivelul zero si scoatem suprascrierile de start.
+    """
+    ET.register_namespace("w", W)
+    root = ET.fromstring(xml)
+
+    for lvl in root.iter(f"{Wn}lvl"):
+        if lvl.get(f"{Wn}ilvl") != "0":
+            continue
+        start = lvl.find(f"{Wn}start")
+        if start is not None:
+            start.set(f"{Wn}val", "1")
+
+    for num in root.iter(f"{Wn}num"):
+        for ovr in list(num.findall(f"{Wn}lvlOverride")):
+            num.remove(ovr)
+
+    return ET.tostring(root, encoding="UTF-8", xml_declaration=True)
+
+
 def curata_relatiile(xml: bytes, scoase: set[str]) -> bytes:
     """Scoate relatiile care trimit catre parti eliminate din arhiva.
 
@@ -165,6 +190,8 @@ def main(argv=None) -> int:
                 date = goleste_corpul(date)
             elif item.filename == "docProps/core.xml":
                 date = curata_proprietatile(date)
+            elif item.filename == "word/numbering.xml":
+                date = reseteaza_numerotarea(date)
             elif item.filename == "_rels/.rels":
                 date = curata_relatiile(date, DE_SCOS)
             elif item.filename == "[Content_Types].xml":

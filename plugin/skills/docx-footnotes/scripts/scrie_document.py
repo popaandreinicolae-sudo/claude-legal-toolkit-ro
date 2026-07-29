@@ -69,6 +69,12 @@ STIL_PARTI = "Parties"
 STIL_TITLU = "heading 1"
 STIL_SIMPLU = "Normal"
 
+# Titlurile se scriu bold si albastru, pe run, nu prin stil. Masurat pe titlurile din
+# cele 86 de acte proprii: bold in 100% din cazuri, culoarea vazuta de cititor #244061
+# in 54%, urmata de #1F497D cu 27%. Definitia stilului `Heading1` poarta un violet
+# #590056, dar el este suprascris de fiecare data, deci nu ajunge niciodata pe hartie.
+TITLU_CULOARE = "244061"
+
 
 def _numerotare(paragraf, num_id: int, nivel: int = 0):
     """Ataseaza fluxul de numerotare direct pe paragraf.
@@ -114,6 +120,22 @@ def _scrie(paragraf, text: str, bold):
         paragraf.add_run(ramas)
 
 
+def _culoare_titlu(paragraf):
+    """Pune albastrul pe run, peste ce spune stilul.
+
+    Definitia stilului `Heading1` din sablon poarta violet, dar in toate actele proprii
+    culoarea e suprascrisa pe run, deci cititorul vede mereu albastru. Reproducem ce se
+    vede, nu ce scrie in definitie.
+    """
+    for run in paragraf.runs:
+        rpr = run._r.get_or_add_rPr()
+        for vechi in rpr.findall(qn("w:color")):
+            rpr.remove(vechi)
+        col = OxmlElement("w:color")
+        col.set(qn("w:val"), TITLU_CULOARE)
+        rpr.append(col)
+
+
 def _bloc(doc, elemente, stil, *, bold_implicit=False, num_id=None):
     for e in elemente or []:
         item = {"text": e} if isinstance(e, str) else dict(e)
@@ -124,9 +146,10 @@ def _bloc(doc, elemente, stil, *, bold_implicit=False, num_id=None):
         tip = item.get("tip", "")
         stil_efectiv = stil
         numerotare = num_id
+        e_titlu = tip == "titlu"
         if tip == "marcator":
             numerotare = NUM_MARCATOR
-        elif tip == "titlu":
+        elif e_titlu:
             stil_efectiv = STIL_TITLU
             numerotare = None
 
@@ -135,8 +158,10 @@ def _bloc(doc, elemente, stil, *, bold_implicit=False, num_id=None):
         except KeyError:
             p = doc.add_paragraph()
 
-        bold = item.get("bold", bold_implicit)
+        bold = True if e_titlu else item.get("bold", bold_implicit)
         _scrie(p, text, bold)
+        if e_titlu:
+            _culoare_titlu(p)
         if numerotare is not None:
             _numerotare(p, numerotare)
         yield p
@@ -164,6 +189,7 @@ def construieste(spec: dict, autor: str):
         except KeyError:
             p = doc.add_paragraph()
         p.add_run(spec["titlu"]).bold = True
+        _culoare_titlu(p)
 
     list(_bloc(doc, spec.get("obiect"), STIL_SIMPLU, bold_implicit=True))
 

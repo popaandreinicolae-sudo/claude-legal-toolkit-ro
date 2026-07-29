@@ -325,10 +325,11 @@ def verifica_format(z, doc, ref, rap):
             rap.avert(f"marime note {d} pt ({pct}%), stilul de casa cere {ref['fn_sz_pt']} pt")
 
 
-# Masurat pe definitiile de stil din cele 86 de acte proprii, nu pe culorile din run-uri.
-# `Heading1` poarta #590056 in 98% din ele. Bleumarinurile apar ca formatare directa in
-# interiorul titlurilor, deci raman acceptate, dar nu sunt culoarea stilului.
-TITLU_CULORI = {"590056", "3C1053", "244061", "1F497D", "1F3864", "365F91", "2F5496"}
+# Culorile pe care le vede cititorul la titluri, masurate pe cele 205 titluri din actele
+# proprii: #244061 in 54%, #1F497D in 27%, restul nuante apropiate de albastru. Violetul
+# #590056 exista numai in definitia stilului `Heading1` si e suprascris de fiecare data,
+# deci nu apare in lista: un titlu care ramane violet e o abatere, nu forma casei.
+TITLU_CULORI = {"244061", "1F497D", "1F3864", "365F91", "2F5496"}
 WP = "{http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing}"
 
 
@@ -440,18 +441,54 @@ def verifica_identitate(z, doc, ref, rap):
     if not folosite:
         return
 
+    # Culoarea si bold-ul se citesc de pe run, adica de pe ce vede cititorul, si abia
+    # apoi din stil. Definitia lui `Heading1` din actele proprii poarta un violet care e
+    # suprascris de fiecare data; citind numai stilul, verificarea aproba un titlu violet
+    # si respinge unul albastru, adica exact invers.
     styles = citeste(z, "word/styles.xml")
-    culori = collections.Counter()
+    din_stil = {}
     if styles is not None:
         for s in styles.iter(f"{W}style"):
-            if (s.get(f"{W}styleId") or "") not in folosite:
-                continue
             rpr = s.find(f"{W}rPr")
             if rpr is None:
                 continue
-            c = val(rpr.find(f"{W}color"))
-            if c and c.upper() not in ("AUTO", "000000"):
-                culori[c.upper()] += 1
+            din_stil[s.get(f"{W}styleId")] = (
+                val(rpr.find(f"{W}color")),
+                rpr.find(f"{W}b") is not None,
+            )
+
+    culori = collections.Counter()
+    fara_bold = 0
+    titluri = 0
+    for p in doc.iter(f"{W}p"):
+        ppr = p.find(f"{W}pPr")
+        if ppr is None:
+            continue
+        sid = val(ppr.find(f"{W}pStyle")) or ""
+        if sid not in folosite:
+            continue
+        if not "".join(t.text or "" for t in p.iter(f"{W}t")).strip():
+            continue
+        titluri += 1
+        c_run = b_run = None
+        for r in p.iter(f"{W}r"):
+            rpr = r.find(f"{W}rPr")
+            if rpr is None:
+                continue
+            if c_run is None and rpr.find(f"{W}color") is not None:
+                c_run = val(rpr.find(f"{W}color"))
+            if b_run is None and rpr.find(f"{W}b") is not None:
+                b_run = True
+        c_stil, b_stil = din_stil.get(sid, (None, False))
+        efectiv = (c_run or c_stil or "").upper()
+        if efectiv and efectiv not in ("AUTO", "000000"):
+            culori[efectiv] += 1
+        if not (b_run or b_stil):
+            fara_bold += 1
+
+    if titluri and fara_bold:
+        rap.avert(f"{fara_bold} din {titluri} titluri nu sunt bold; in actele proprii "
+                  f"toate sunt")
     if not culori:
         rap.avert("titlurile nu au culoare; stilul de casa le scrie bleumarin #244061")
     elif set(culori) & TITLU_CULORI:
