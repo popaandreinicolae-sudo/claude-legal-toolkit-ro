@@ -47,6 +47,24 @@ python "$HOME/.claude/skills/docx-footnotes/scripts/creeaza_document.py" \
 pentru formatul Scolii Doctorale UB Drept. Abia dupa aceea scrii continutul in fisierul
 rezultat, cu python-docx.
 
+## Calea sigura, continutul dat scriptului
+
+Cand ai de scris un act intreg, nu construi paragrafele de mana. Scrie continutul intr-un
+fisier JSON, cu rolul fiecarui bloc, si lasa scriptul sa aplice forma:
+
+```bash
+python "$HOME/.claude/skills/docx-footnotes/scripts/scrie_document.py" \
+    --continut act.json --output "cale/cerere.docx"
+```
+
+Structura fisierului sta scrisa in antetul scriptului. Pe scurt, `instanta`, `reclamant`,
+`parti`, `titlu`, `obiect`, `corp`, `final`. Fiecare element din `corp` poate fi text
+simplu, sau un obiect cu `bold` pentru fragmentele de evidentiat, `{"tip": "marcator"}`
+pentru enumerari si `{"tip": "titlu"}` pentru titluri de sectiune.
+
+Asa nu mai poti gresi stilul, numerotarea sau bold-ul. Tu scrii dreptul, scriptul pune
+forma. Sectiunea urmatoare ramane pentru cazurile in care scrii direct cu python-docx.
+
 ## Cum se scrie continutul, stilurile de aplicat
 
 Sablonul aduce recipientul. Daca scrii apoi cu `add_paragraph(text)` si
@@ -112,13 +130,15 @@ cu subsol poarta numerotarea acolo.
 
 ## Titlurile
 
-Georgia 13 pt, bold, majuscule, bleumarin `#244061`, centrate la nivelul intai.
-Masurat pe titlurile din actele proprii, culoarea apare in 58% din cazuri, urmata de
-`#1F497D` cu 31%; ambele sunt acceptate la verificare.
+Vin din sablon, deci nu le configura. Masurat pe definitiile de stil din cele 86 de acte
+proprii, `Heading1` poarta culoarea `#590056` in 98% dintre ele, cu majuscule aplicate
+prin `w:caps`. `TITLE1`, `Heading2` si `Heading3` nu au culoare proprie si mostenesc.
 
-Majusculele se aplica prin stil, cu `w:caps`, nu scrise in text. Cine copiaza titlul
-primeste forma originala, iar un redline nu marcheaza diferenta de capitalizare ca
-modificare.
+Bleumarinul `#244061` apare des in titluri, dar ca formatare directa pe run, nu ca
+definitie de stil. De aceea nu se seteaza; vine din text acolo unde e nevoie.
+
+Majusculele stau in stil, nu scrise in text. Cine copiaza titlul primeste forma
+originala, iar un redline nu marcheaza diferenta de capitalizare ca modificare.
 
 ## Numerotarea
 

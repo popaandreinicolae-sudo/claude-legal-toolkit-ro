@@ -162,6 +162,33 @@ def verifica_format(z, doc, ref, rap):
                     normal_font = val(rpr.find(f"{W}rFonts"), "ascii") or normal_font
                     normal_sz = val(rpr.find(f"{W}sz")) or normal_sz
 
+    # Alinierea se mosteneste prin lantul de stiluri, apoi din docDefaults. Citind numai
+    # `jc` de pe paragraf, verificarea raporta fals abateri pe 48 din cele 86 de acte
+    # proprii, unde blocul de adresare are `left` explicit iar corpul justificat il
+    # mosteneste tacut.
+    jc_stil, bazat_pe = {}, {}
+    jc_implicit = None
+    if styles is not None:
+        dd = styles.find(f"{W}docDefaults/{W}pPrDefault/{W}pPr")
+        if dd is not None:
+            jc_implicit = val(dd.find(f"{W}jc"))
+        for s in styles.iter(f"{W}style"):
+            sid = s.get(f"{W}styleId")
+            ppr = s.find(f"{W}pPr")
+            if ppr is not None and ppr.find(f"{W}jc") is not None:
+                jc_stil[sid] = val(ppr.find(f"{W}jc"))
+            b = s.find(f"{W}basedOn")
+            if b is not None:
+                bazat_pe[sid] = val(b)
+
+    def jc_din_stil(sid, adancime=0):
+        while sid and adancime < 8:
+            if sid in jc_stil:
+                return jc_stil[sid]
+            sid = bazat_pe.get(sid)
+            adancime += 1
+        return None
+
     fonturi, marimi = collections.Counter(), collections.Counter()
     alin, linii, reguli = collections.Counter(), collections.Counter(), collections.Counter()
     inainte, dupa, alineat = collections.Counter(), collections.Counter(), collections.Counter()
@@ -174,10 +201,15 @@ def verifica_format(z, doc, ref, rap):
         lungime = sum(len(t.text or "") for t in para.iter(f"{W}t"))
         if lungime < 40:
             continue
+        # Ponderam dupa cate caractere poarta alinierea, nu dupa numarul de paragrafe.
+        # Blocul de adresare are cateva randuri scurte aliniate stanga, corpul are mii de
+        # caractere justificate; numarate la bucata, primele castiga pe nedrept.
+        j_efectiv = (val(ppr.find(f"{W}jc")) if ppr is not None else None) \
+            or jc_din_stil(pstyle) or jc_implicit
+        if j_efectiv:
+            alin[j_efectiv] += lungime
+
         if ppr is not None:
-            j = val(ppr.find(f"{W}jc"))
-            if j:
-                alin[j] += 1
             sp = ppr.find(f"{W}spacing")
             if sp is not None:
                 if sp.get(f"{W}line"):
@@ -215,26 +247,43 @@ def verifica_format(z, doc, ref, rap):
     elif m_dom:
         rap.bun(f"marime corp {m_dom} pt ({m_pct}%)")
 
-    j_dom, j_pct = dominant(alin)
-    if j_dom and j_dom != ref["jc"]:
-        rap.avert(f"aliniere dominanta {j_dom} ({j_pct}%), asteptat {ref['jc']}")
-    elif j_dom:
-        rap.bun(f"aliniere {j_dom} ({j_pct}%)")
+    # Alinierea se mosteneste. In actele proprii, `docDefaults/pPrDefault` scrie
+    # `jc=both`, iar stilul de corp nu o suprascrie, deci paragrafele fara aliniere
+    # explicita sunt justificate. Citind numai `jc` de pe paragraf, verificarea raporta
+    # fals abateri chiar pe actele lui.
+    implicit = None
+    if styles is not None:
+        dd = styles.find(f"{W}docDefaults/{W}pPrDefault/{W}pPr")
+        if dd is not None:
+            implicit = val(dd.find(f"{W}jc"))
 
+    j_dom, j_pct = dominant(alin)
+    efectiv = j_dom or implicit
+    if efectiv and efectiv != ref["jc"]:
+        sursa = "pe paragraf" if j_dom else "din implicitul documentului"
+        rap.avert(f"aliniere dominanta {efectiv} ({sursa}), asteptat {ref['jc']}")
+    elif efectiv:
+        rap.bun(f"aliniere {efectiv}"
+                + (f" ({j_pct}% explicit)" if j_dom else ", din implicitul documentului"))
+
+    # Pragurile de mai jos sunt benzi, nu valori. Calibrate pe cele 86 de acte proprii:
+    # interlinia foloseste `atLeast` in 70% din paragrafe si `exact` in 17%, iar spatiul
+    # dintre paragrafe se aseaza pe 6 pt in majoritate, dar 5 si 8 pt apar des. Un prag
+    # ingust semnala abateri chiar pe actele lui, ceea ce face raportul inutil.
     r_dom, _ = dominant(reguli)
     l_dom, _ = dominant(linii)
-    if ref["line_rule"] and r_dom and r_dom != ref["line_rule"]:
-        rap.avert(f"regula de interlinie {r_dom}, stilul de casa cere {ref['line_rule']}")
-    if ref["line_twips"] and l_dom and abs(int(l_dom) - ref["line_twips"]) > 20:
-        rap.avert(f"interlinie {l_dom} twips, stilul de casa cere ~{ref['line_twips']}")
+    if ref["line_rule"] and r_dom and r_dom not in ("atLeast", "exact"):
+        rap.avert(f"regula de interlinie {r_dom}, actele proprii folosesc atLeast sau exact")
+    if ref["line_twips"] and l_dom and abs(int(l_dom) - ref["line_twips"]) > 40:
+        rap.avert(f"interlinie {l_dom} twips, stilul de casa se aseaza pe ~{ref['line_twips']}")
 
     for cheie, cnt, eticheta in (("before_pt", inainte, "spatiu inainte"),
                                  ("after_pt", dupa, "spatiu dupa")):
         if ref[cheie] is None:
             continue
         d, _ = dominant(cnt)
-        if d and abs(int(d) / 20 - ref[cheie]) > 0.5:
-            rap.avert(f"{eticheta} {int(d)/20} pt, stilul de casa cere {ref[cheie]} pt")
+        if d and not (4 <= int(d) / 20 <= 8):
+            rap.avert(f"{eticheta} {int(d)/20} pt, actele proprii stau intre 4 si 8 pt")
 
     a_dom, _ = dominant(alineat)
     if a_dom is not None and abs(a_dom - ref["first_line_cm"]) > 0.05:
@@ -276,7 +325,10 @@ def verifica_format(z, doc, ref, rap):
             rap.avert(f"marime note {d} pt ({pct}%), stilul de casa cere {ref['fn_sz_pt']} pt")
 
 
-TITLU_CULORI = {"244061", "1F497D", "1F3864", "365F91", "2F5496"}
+# Masurat pe definitiile de stil din cele 86 de acte proprii, nu pe culorile din run-uri.
+# `Heading1` poarta #590056 in 98% din ele. Bleumarinurile apar ca formatare directa in
+# interiorul titlurilor, deci raman acceptate, dar nu sunt culoarea stilului.
+TITLU_CULORI = {"590056", "3C1053", "244061", "1F497D", "1F3864", "365F91", "2F5496"}
 WP = "{http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing}"
 
 
