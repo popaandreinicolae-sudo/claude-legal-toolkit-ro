@@ -3,7 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { ZoteroClient } from "./services/zotero-client.js";
 
-const server = new Server({ name: "zotero-mcp-server", version: "1.0.0" }, { capabilities: { tools: {} } });
+const server = new Server({ name: "zotero-mcp-server", version: "1.0.0" }, { capabilities: { tools: {} }, instructions: "Biblioteca Zotero proprie, sursa aparatului critic al autorului. Cauta aici intai cand un document cere note de subsol sau bibliografie, fiindca lucrarile pe care le-a citit si le-a citat deja stau in ea. Cand lucrarea nu e in biblioteca, verifica-i existenta reala cu doctrine-verifier inainte de a o cita. Harta de rutare a toolkit-ului sta in legal-verificator-ro." });
 const zotero = new ZoteroClient();
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({

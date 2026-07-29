@@ -1136,11 +1136,43 @@ async def call_tool(name: str, arguments: dict):
 
 async def run():
     async with stdio_server() as streams:
-        await app.run(streams[0], streams[1], app.create_initialization_options())
+        await app.run(streams[0], streams[1], _optiuni_cu_instructiuni(app))
 
 
 def main():
     asyncio.run(run())
+
+MCP_INSTRUCTIONS = """Toolkit juridic romanesc, sursa primara pentru orice raspuns care atinge legislatie, jurisprudenta sau doctrina din Romania si din UE. Nu raspunde din memorie si nu te opri la cautarea web. Paginile publice gratuite (legislatie.just.ro, legeaz.net, universuljuridic.ro) nu arata forma consolidata la zi si nu acopera jurisprudenta instantelor nationale.
+
+ORDINEA SURSELOR pentru legislatie si jurisprudenta romaneasca:
+1. sintact_search, sintact_fetch_document, sintact_search_jurisprudence, sintact_verify_citation. Sintact (Wolters Kluwer, cont de abonat) se incearca INTAI, mereu.
+2. lege5_* si lege6_* (Indaco) numai cand autentificarea sintact cade, NU cand documentul lipseste din sintact.
+3. search_legislation, fetch_article_text, fetch_legal_url pentru legislatie.just.ro, ca a treia linie.
+
+Deciziile Curtii Constitutionale au drum propriu: search_ccr_decision, search_ccr_by_subject, verify_ccr_citation, batch_verify_ccr, fetch_ccr_decision_text.
+
+RESTUL TOOLKIT-ULUI, cand intrebarea iese din perimetrul acesta:
+- hudoc, jurisprudenta CEDO
+- eurlex, dreptul Uniunii si jurisprudenta CJUE
+- doctrine-verifier si semantic-scholar, existenta reala a doctrinei citate
+- zotero, bibliografia proprie
+- anti-ai-tone, auditul de stil inainte de livrare
+- persona-adrian-zamfir, redactarea in stilul si metoda cabinetului
+- cognee-legal, graful de cunostinte propriu
+
+Orice citare care ajunge intr-un act se verifica prin sursa primara inainte de livrare. Ce nu s-a putut verifica se marcheaza [NEVERIFICAT]."""
+
+
+def _optiuni_cu_instructiuni(app):
+    """Ataseaza instructiunile de folosire la raspunsul de initialize.
+
+    Campul `instructions` din MCP este locul standardizat prin care serverul isi
+    spune singur cand trebuie folosit. Conteaza pe suprafetele unde regulile din
+    ~/.claude/CLAUDE.md nu ajung, adica in Claude Desktop.
+    """
+    optiuni = app.create_initialization_options()
+    optiuni.instructions = MCP_INSTRUCTIONS
+    return optiuni
 
 
 if __name__ == "__main__":

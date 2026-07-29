@@ -325,7 +325,21 @@ async def call_tool(name: str, arguments: dict):
 
 async def main():
     async with stdio_server() as streams:
-        await app.run(streams[0], streams[1], app.create_initialization_options())
+        await app.run(streams[0], streams[1], _optiuni_cu_instructiuni(app))
+
+MCP_INSTRUCTIONS = """Verifica daca o lucrare de doctrina exista cu adevarat, prin Crossref, OpenAlex si Google Books. Foloseste-l inainte de a cita o carte, un articol sau un DOI intr-un act sau intr-o lucrare academica, fiindca titlurile plauzibile inventate sunt eroarea dominanta la citarea de doctrina. Harta completa de rutare a toolkit-ului sta in instructiunile serverului legal-verificator-ro."""
+
+
+def _optiuni_cu_instructiuni(app):
+    """Ataseaza instructiunile de folosire la raspunsul de initialize.
+
+    Campul `instructions` din MCP este locul standardizat prin care serverul isi
+    spune singur cand trebuie folosit. Conteaza pe suprafetele unde regulile din
+    ~/.claude/CLAUDE.md nu ajung, adica in Claude Desktop.
+    """
+    optiuni = app.create_initialization_options()
+    optiuni.instructions = MCP_INSTRUCTIONS
+    return optiuni
 
 
 if __name__ == "__main__":

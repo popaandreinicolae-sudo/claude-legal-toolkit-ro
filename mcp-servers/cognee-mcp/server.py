@@ -125,7 +125,21 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
 async def main():
     async with stdio_server() as (read_stream, write_stream):
-        await app.run(read_stream, write_stream, app.create_initialization_options())
+        await app.run(read_stream, write_stream, _optiuni_cu_instructiuni(app))
+
+MCP_INSTRUCTIONS = """Graf de cunostinte propriu peste materialele juridice indexate. Interogheaza-l cand intrebarea atinge legaturi intre documente proprii. Nu inlocuieste sursa primara: pentru legislatie si jurisprudenta mergi intai la legal-verificator-ro, care tine si harta de rutare."""
+
+
+def _optiuni_cu_instructiuni(app):
+    """Ataseaza instructiunile de folosire la raspunsul de initialize.
+
+    Campul `instructions` din MCP este locul standardizat prin care serverul isi
+    spune singur cand trebuie folosit. Conteaza pe suprafetele unde regulile din
+    ~/.claude/CLAUDE.md nu ajung, adica in Claude Desktop.
+    """
+    optiuni = app.create_initialization_options()
+    optiuni.instructions = MCP_INSTRUCTIONS
+    return optiuni
 
 
 if __name__ == "__main__":

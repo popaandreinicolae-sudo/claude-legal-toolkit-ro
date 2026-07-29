@@ -4,7 +4,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprot
 import { HudocClient } from "./services/hudoc-client.js";
 
 const CHARACTER_LIMIT = 25000;
-const server = new Server({ name: "hudoc-mcp-server", version: "1.0.0" }, { capabilities: { tools: {} } });
+const server = new Server({ name: "hudoc-mcp-server", version: "1.0.0" }, { capabilities: { tools: {} }, instructions: "Jurisprudenta Curtii Europene a Drepturilor Omului, luata direct din HUDOC. Foloseste-l ori de cate ori raspunsul invoca Conventia sau o cauza CEDO. Nu cita o hotarare din memorie: numarul cererii, data si paragraful se verifica aici, cu hudoc_get_judgment si hudoc_search_by_article. Pentru legislatie si jurisprudenta romaneasca mergi la legal-verificator-ro, care tine si harta de rutare a intregului toolkit juridic." });
 const hudoc = new HudocClient();
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({

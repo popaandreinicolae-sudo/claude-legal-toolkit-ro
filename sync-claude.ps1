@@ -26,16 +26,24 @@ $Toolkit = $PSScriptRoot
 $Dest = Join-Path $env:USERPROFILE '.claude'
 
 $Skills = @(
+    'anti-ai-tone'
     'anti-hallucination-document'
     'anti-hallucination-energetic'
     'constitutional-law-ro'
     'cyber-law-ro'
+    'docx-footnotes'
+    'docx-livrare-check'
+    'docx-safe-edit'
     'docx-track-changes-review'
     'source-pack-grounding'
     'task-contract'
     'ub-drept-citation'
     'verificare-citari-gate'
 )
+
+# docx-track-changes NU apare aici. E scris local, nu exista in repo, iar scriptul il
+# raporteaza ca atare si il lasa neatins. Vezi bucla de subagenti pentru acelasi
+# comportament.
 
 Write-Host "`n=== SKILL-URI ===" -ForegroundColor Cyan
 foreach ($s in $Skills) {
@@ -63,6 +71,22 @@ if ($item -and $item.LinkType -eq 'Junction') {
     Write-Host "  junction catre $($item.Target -join ', '), nimic de copiat"
 } else {
     Write-Host "  ATENTIE: $scripts nu mai e junction, hook-urile pot derapa" -ForegroundColor Red
+}
+
+Write-Host "`n=== PACHET PENTRU DESKTOP SI COWORK ===" -ForegroundColor Cyan
+# Claude Desktop nu citeste ~/.claude, deci skill-urile, subagentii si hook-urile de
+# mai sus nu ajung acolo de la sine. Le reimpachetam ca plugin, dupa ce sincronizarea
+# de mai sus a terminat, ca pachetul sa reflecte exact configuratia instalata.
+$build = Join-Path $Toolkit 'tools\build_plugin.py'
+if (Test-Path $build) {
+    & python $build
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "  ok  plugin/ reconstruit din configuratia instalata"
+    } else {
+        Write-Host "  build_plugin.py a esuat, pachetul a ramas cel vechi" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "  lipseste tools\build_plugin.py, sar peste" -ForegroundColor Yellow
 }
 
 Write-Host "`nGata. Reporneste Claude Desktop ca serverele MCP sa reincarce codul.`n" -ForegroundColor Green

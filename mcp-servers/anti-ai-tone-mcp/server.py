@@ -570,7 +570,21 @@ def compare_versions_inline(path_a: str, path_b: str) -> str:
 
 async def main():
     async with stdio_server() as (read_stream, write_stream):
-        await app.run(read_stream, write_stream, app.create_initialization_options())
+        await app.run(read_stream, write_stream, _optiuni_cu_instructiuni(app))
+
+MCP_INSTRUCTIONS = """Audit de stil pe text profesional romanesc, cu prag de naturalete masurat. Ruleaza-l pe orice text peste 500 de cuvinte care nu e cod, inainte de livrare. Regulile complete se iau cu get_skill_rules. Harta de rutare a toolkit-ului juridic sta in instructiunile serverului legal-verificator-ro."""
+
+
+def _optiuni_cu_instructiuni(app):
+    """Ataseaza instructiunile de folosire la raspunsul de initialize.
+
+    Campul `instructions` din MCP este locul standardizat prin care serverul isi
+    spune singur cand trebuie folosit. Conteaza pe suprafetele unde regulile din
+    ~/.claude/CLAUDE.md nu ajung, adica in Claude Desktop.
+    """
+    optiuni = app.create_initialization_options()
+    optiuni.instructions = MCP_INSTRUCTIONS
+    return optiuni
 
 
 if __name__ == '__main__':

@@ -4,7 +4,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprot
 import { EurLexClient } from "./services/eurlex-client.js";
 
 const CHARACTER_LIMIT = 25000;
-const server = new Server({ name: "eurlex-mcp-server", version: "1.0.0" }, { capabilities: { tools: {} } });
+const server = new Server({ name: "eurlex-mcp-server", version: "1.0.0" }, { capabilities: { tools: {} }, instructions: "Dreptul Uniunii Europene si jurisprudenta CJUE, luate direct din EUR-Lex. Foloseste-l ori de cate ori raspunsul atinge o directiva, un regulament, o decizie UE sau o cauza CJUE, inclusiv cand verifici transpunerea in dreptul romanesc. Ruleaza check_in_force inainte de a cita un act: citarea unui act abrogat ca temei in vigoare este eroarea cea mai costisitoare. Pentru legislatie si jurisprudenta romaneasca mergi la legal-verificator-ro, care tine si harta de rutare a intregului toolkit juridic." });
 const eurlex = new EurLexClient();
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({

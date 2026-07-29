@@ -1,0 +1,8 @@
+{
+  "name": "toolkit-juridic-ro",
+  "version": "1.0.0",
+  "description": "Toolkit juridic si academic in limba romana: redactare pe surse primare, verificarea citarilor, redline pe .docx cu modificari urmarite, audit de stil anti-ton-AI si poarta de calitate inainte de livrare. Destinat suprafetelor unde ~/.claude nu se citeste, Claude Desktop si Cowork.",
+  "author": {
+    "name": "Adrian Zamfir"
+  }
+}
