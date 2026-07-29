@@ -338,6 +338,42 @@ def verifica_identitate(z, doc, ref, rap):
     else:
         rap.avert("documentul nu are subsol; actele proprii au in 94% din cazuri")
 
+    # Stilurile aplicate pe paragrafele cu text. Sablonul aduce definitiile, dar
+    # continutul scris cu `add_paragraph` simplu ramane pe Normal, iar actul iese cu
+    # marginile corecte si structura altcuiva. Masurat pe 7660 de paragrafe proprii:
+    # Bodycunrdeparagraf 56%, Normal 25%, bold in 53%, numerotare automata in 61%.
+    aplicate = collections.Counter()
+    cu_bold = numerotate = cu_text = 0
+    for p in doc.iter(f"{W}p"):
+        text = "".join(t.text or "" for t in p.iter(f"{W}t")).strip()
+        if not text:
+            continue
+        cu_text += 1
+        ppr = p.find(f"{W}pPr")
+        aplicate[(val(ppr.find(f"{W}pStyle")) if ppr is not None else None) or "(Normal)"] += 1
+        if ppr is not None and ppr.find(f"{W}numPr") is not None:
+            numerotate += 1
+        for r in p.iter(f"{W}r"):
+            rpr = r.find(f"{W}rPr")
+            if rpr is not None and rpr.find(f"{W}b") is not None:
+                cu_bold += 1
+                break
+
+    if cu_text >= 10:
+        corp = aplicate.get("Bodycunrdeparagraf", 0)
+        if corp * 100 // cu_text < 25:
+            rap.avert(f"doar {corp} din {cu_text} paragrafe folosesc stilul de corp "
+                      f"Bodycunrdeparagraf; in actele proprii acopera 56%")
+        else:
+            rap.bun(f"stil de corp aplicat pe {corp * 100 // cu_text}% din paragrafe")
+        if numerotate * 100 // cu_text < 30:
+            rap.avert(f"doar {numerotate * 100 // cu_text}% din paragrafe sunt numerotate "
+                      f"automat; in actele proprii 61%. Numerele scrise ca text se strica "
+                      f"la prima insertie.")
+        if cu_bold * 100 // cu_text < 25:
+            rap.avert(f"bold doar in {cu_bold * 100 // cu_text}% din paragrafe; in actele "
+                      f"proprii 53%, pe termeni definiti, parti si temeiuri")
+
     # Doar stilurile de titlu FOLOSITE efectiv in corp. Un document Word poarta din
     # sablon zeci de stiluri nefolosite, Heading4-9 si variantele Char, cu culorile
     # implicite ale temei. Numarate la gramada, ele acopera culoarea reala a titlurilor.

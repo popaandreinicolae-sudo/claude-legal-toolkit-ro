@@ -47,6 +47,51 @@ python "$HOME/.claude/skills/docx-footnotes/scripts/creeaza_document.py" \
 pentru formatul Scolii Doctorale UB Drept. Abia dupa aceea scrii continutul in fisierul
 rezultat, cu python-docx.
 
+## Cum se scrie continutul, stilurile de aplicat
+
+Sablonul aduce recipientul. Daca scrii apoi cu `add_paragraph(text)` si
+`add_heading(text)`, iese un document care are marginile corecte si structura altcuiva.
+Stilurile trebuie aplicate explicit.
+
+Masurat pe cele 86 de acte proprii, 7660 de paragrafe cu text:
+
+| Stil | Pondere | Pentru ce |
+|---|---|---|
+| `Bodycunrdeparagraf` | 56% | corpul actului, paragraful numerotat |
+| `(Normal)` | 25% | antetul de adresare, identificarea partilor, obiectul |
+| `ListParagraph` | 7% | enumerari in interiorul unui paragraf |
+| `Parties` | 1% | blocul „in contradictoriu cu", cu numerotare proprie |
+| `Recitals` | 1% | considerente, in acte de tip conventie |
+| `Heading1` sau `TITLE1` | 2% | titlul actului si titlurile de sectiune |
+
+Scrii asa:
+
+```python
+doc.add_paragraph("CATRE: TRIBUNALUL ...", style="Normal").runs[0].bold = True
+doc.add_paragraph("In contradictoriu cu", style="Parties")
+doc.add_paragraph("cerere de chemare in judecata", style="Heading1")
+p = doc.add_paragraph("Prin avizul negativ ...", style="Bodycunrdeparagraf")
+```
+
+**Numerotarea nu se scrie in text.** Paragrafele de corp o primesc din `w:numPr`, deci
+niciodata „1.", „2." tastate. 61% din paragrafele proprii sunt numerotate automat.
+
+**Bold-ul e des si intentionat.** 53% din paragrafele proprii contin cel putin un pasaj
+bold, termenii definiti, denumirile partilor, temeiurile invocate. Un act fara bold nu
+seamana cu ale tale.
+
+## Structura unei cereri de chemare in judecata
+
+Ordinea masurata pe actele proprii de acest tip:
+
+1. instanta si sectia, `Normal`, bold;
+2. identificarea reclamantului cu domiciliul, `Normal`, bold;
+3. domiciliul procesual ales, `Normal`, bold;
+4. blocul partilor, `Parties`, numerotat, cu paratul in bold;
+5. denumirea actului, `Heading1`;
+6. obiectul cererii, `Normal`, bold;
+7. corpul, `Bodycunrdeparagraf`, numerotat automat, cu bold pe termenii cheie.
+
 ## Antetul si subsolul
 
 **Antetul apare numai pe prima pagina.** Toate cele 86 de acte proprii poarta `w:titlePg`,
