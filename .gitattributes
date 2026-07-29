@@ -1,0 +1,9 @@
+# Scripturile shell raman cu terminatii Linux, oriunde ar fi luate.
+#
+# Fara regula asta, git pe Windows le scrie cu CRLF la checkout, iar un `#!/bin/sh`
+# urmat de CR nu ruleaza in masina virtuala Cowork. Hook-urile ar fi picat acolo fara
+# niciun mesaj de eroare, fiindca stratul e fail-open prin constructie.
+#
+# Regula e deliberat ingusta. Nu punem `* text=auto`, ca sa nu renormalizam intreg
+# repo-ul si sa producem un diff urias peste munca existenta.
+*.sh text eol=lf
