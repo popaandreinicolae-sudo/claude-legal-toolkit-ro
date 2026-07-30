@@ -1160,9 +1160,26 @@ def spatii_de_nume_rupte(cale):
     Word raspunde "Word found unreadable content" si refuza fisierul, desi pachetul e
     XML valid si trece orice alta verificare. Defectul apare la serializare, cand
     prefixele originale sunt rebotezate fara ca lista din Ignorable sa fie rescrisa.
-    Verificat pe cazul din 29 iulie 2026. Reparatia sta in
-    ~/.claude/skills/docx-footnotes/scripts/repara_pachet.py
+    Verificat pe cazul din 29 iulie 2026.
+
+    Verificarea se ia din repara_pachet.py, care o tine la zi. Copia de mai jos ramane
+    numai ca rezerva, pentru cazul in care modulul nu se poate importa. Ea se uita doar la
+    Ignorable si doar in word/, iar pe 30 iulie 2026 a ratat un al doilea defect din
+    aceeasi familie, prefixul dcterms rebotezat in docProps/core.xml.
     """
+    import importlib.util as _imp
+    import os as _os
+    _cale_modul = _os.path.join(_os.path.expanduser("~"), ".claude", "skills",
+                                "docx-footnotes", "scripts", "repara_pachet.py")
+    if _os.path.exists(_cale_modul):
+        try:
+            _spec = _imp.spec_from_file_location("repara_pachet", _cale_modul)
+            _modul = _imp.module_from_spec(_spec)
+            _spec.loader.exec_module(_modul)
+            return _modul.verifica(cale)
+        except Exception:
+            pass
+
     import re as _re
     import zipfile as _zip
     rupte = []

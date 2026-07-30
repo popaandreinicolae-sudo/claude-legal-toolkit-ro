@@ -2,15 +2,32 @@ import axios, { AxiosInstance } from "axios";
 
 const MAX_RETRIES = 3;
 
+// Valorile de sablon din configurarea MCP. Lasate asa, serverul pleaca la Zotero cu un
+// identificator inexistent si primeste 403, iar mesajul "verificati cheia API" trimite
+// cautarea in directia gresita. Pe 30 iulie 2026 ZOTERO_USER_ID era inca ID_UL_TAU_ZOTERO,
+// adica sablonul din INSTALL.md, si biblioteca proprie nu raspunsese niciodata.
+const SABLOANE = new Set([
+  "id_ul_tau_zotero",
+  "cheia_ta_zotero",
+  "your-user-id",
+  "your-api-key",
+  "changeme",
+]);
+
+function acreditare(nume: string): string {
+  const val = (process.env[nume] ?? "").trim();
+  return SABLOANE.has(val.toLowerCase()) ? "" : val;
+}
+
 export class ZoteroClient {
   private client: AxiosInstance;
   private userId: string;
 
   constructor() {
-    const apiKey = process.env.ZOTERO_API_KEY ?? "";
-    this.userId = process.env.ZOTERO_USER_ID ?? "";
-    if (!apiKey) console.error("[zotero] WARNING: ZOTERO_API_KEY not set");
-    if (!this.userId) console.error("[zotero] WARNING: ZOTERO_USER_ID not set");
+    const apiKey = acreditare("ZOTERO_API_KEY");
+    this.userId = acreditare("ZOTERO_USER_ID");
+    if (!apiKey) console.error("[zotero] ZOTERO_API_KEY lipseste sau e sablon neinlocuit");
+    if (!this.userId) console.error("[zotero] ZOTERO_USER_ID lipseste sau e sablon neinlocuit");
 
     this.client = axios.create({
       baseURL: "https://api.zotero.org",
@@ -24,6 +41,15 @@ export class ZoteroClient {
   }
 
   private userPath(path: string): string {
+    // Fara identificator, cererea pleaca spre /users//items si Zotero raspunde 403, iar
+    // mesajul te trimite sa verifici cheia. Mai bine spunem de la inceput ce lipseste.
+    if (!this.userId) {
+      throw new Error(
+        "ZOTERO_USER_ID nu e configurat. Il gasesti pe zotero.org/settings/keys, " +
+        "la 'Your userID for use in API calls', si il pui in configurarea serverului " +
+        "MCP zotero, in locul sablonului ID_UL_TAU_ZOTERO.",
+      );
+    }
     return `/users/${this.userId}${path}`;
   }
 

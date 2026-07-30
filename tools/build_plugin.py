@@ -187,6 +187,41 @@ def copiaza_arbore(sursa: Path, tinta: Path) -> int:
     return sum(1 for _ in tinta.rglob("*") if _.is_file())
 
 
+def intoarce_in_repo(instalate: Path, in_repo: Path) -> list:
+    """Aduce in repo skill-urile modificate direct in ~/.claude/skills.
+
+    Bucla avea doua capete care aratau in directii opuse. Constructorul citeste
+    skill-urile instalate, iar sync-claude.ps1 le scrie in sens invers, din repo peste
+    cele instalate. O modificare facuta in ~/.claude si nepusa in repo supravietuia deci
+    pana la prima sincronizare de dupa un git pull, care o stergea in tacere.
+
+    Verificat pe 30 iulie 2026: regulile despre sintact adaugate in source-pack-grounding
+    si verificare-citari-gate erau numai in copia instalata, iar in repo statea versiunea
+    din 27 iulie.
+
+    Compararea se face pe continut normalizat, ca diferentele de sfarsit de linie sa nu
+    treaca drept modificari.
+    """
+    def normal(cale: Path) -> bytes:
+        date = cale.read_bytes()
+        return date.replace(b"\r\n", b"\n") if cale.suffix in (".md", ".py", ".json", ".txt") else date
+
+    aduse = []
+    for f in instalate.rglob("*"):
+        if f.is_dir() or "__pycache__" in str(f) or f.suffix == ".pyc":
+            continue
+        tinta = in_repo / f.relative_to(instalate)
+        if tinta.exists() and normal(tinta) == normal(f):
+            continue
+        tinta.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(f, tinta)
+        aduse.append(str(f.relative_to(instalate)))
+    if aduse:
+        print("  skill-uri aduse din ~/.claude in repo: %s" % ", ".join(aduse[:6])
+              + (" si inca %d" % (len(aduse) - 6) if len(aduse) > 6 else ""))
+    return aduse
+
+
 def main() -> int:
     doar_verifica = "--verifica" in sys.argv
 
@@ -214,6 +249,7 @@ def main() -> int:
     (IESIRE / ".claude-plugin").mkdir(parents=True)
 
     n_sk = copiaza_arbore(skills_sursa, IESIRE / "skills")
+    intoarce_in_repo(skills_sursa, REPO / "skills")
     (IESIRE / "agents").mkdir()
     for a in agenti:
         shutil.copy2(agents_sursa / a, IESIRE / "agents" / a)

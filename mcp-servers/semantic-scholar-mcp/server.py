@@ -54,7 +54,15 @@ async def _rate_limited_get(url, params=None):
                     await asyncio.sleep(1)
                     continue
                 raise
-    return {}
+    # Toate cele trei incercari s-au lovit de plafonul de cereri. Pana pe 30 iulie 2026 se
+    # intorcea aici un dict gol, pe care apelantul il raporta ca "0 rezultate", adica exact
+    # ca pe un raspuns valid. Cautarea parea sa spuna ca lucrarea nu exista, cand de fapt
+    # serverul nu apucase sa raspunda. Esecul se spune pe fata.
+    raise RuntimeError(
+        "Semantic Scholar a raspuns 429, plafon de cereri atins, la toate cele trei "
+        "incercari. Nu e un raspuns gol, ci lipsa unui raspuns: nu conchide ca lucrarea "
+        "nu exista. Reia peste cateva minute sau pune o cheie in S2_API_KEY."
+    )
 
 
 @app.list_tools()

@@ -109,7 +109,7 @@ def main() -> int:
     if metrics.get('truisms_total', 0) > 2:
         issues.append(f"  - truisme: {metrics['truisms_total']}")
     if metrics.get('copula_total', 0) > 3:
-        issues.append(f"  - copula avoidance (reprezinta/constituie/etc): {metrics['copula_total']}")
+        issues.append(f"  - copula avoidance (serveste drept, functioneaza ca): {metrics['copula_total']}")
     if metrics.get('ai_vocab_total', 0) > 5:
         issues.append(f"  - vocabular AI: {metrics['ai_vocab_total']} aparitii")
 

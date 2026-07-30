@@ -624,9 +624,44 @@ def verifica_spatii_de_nume(z, rap):
 
     Verificat pe cazul din 29 iulie 2026: sablonul skill-ului docx-footnotes purta
     defectul in word/document.xml si in word/numbering.xml, deci il moștenea fiecare
-    document generat. Reparatia sta in
-    ~/.claude/skills/docx-footnotes/scripts/repara_pachet.py.
+    document generat.
+
+    Verificarea se ia din repara_pachet.py, nu se rescrie aici. Copia locala se uita numai
+    la Ignorable si numai in word/, iar pe 30 iulie 2026 a ratat un al doilea defect din
+    aceeasi familie, in docProps/core.xml, unde prefixul dcterms era rebotezat in ns2. Trei
+    implementari ale aceleiasi verificari inseamna ca doua raman in urma, iar poarta de
+    livrare da GO pe un fisier pe care Word il refuza.
     """
+    rupte = _prin_repara_pachet(z)
+    if rupte is None:
+        rupte = _verificare_locala(z)      # rezerva, cand modulul nu se poate importa
+
+    if rupte:
+        rap.bloc("Word va refuza fisierul: " + "; ".join(rupte)
+                 + ". Repara cu: python ~/.claude/skills/docx-footnotes/scripts/"
+                   "repara_pachet.py repara --input <fisier>")
+    else:
+        rap.bun("spatii de nume corecte, Word deschide pachetul")
+
+
+def _prin_repara_pachet(z):
+    """Verificarea completa, din modulul care o tine la zi. None cand nu se poate importa."""
+    import importlib.util
+    cale = (Path.home() / ".claude" / "skills" / "docx-footnotes" / "scripts"
+            / "repara_pachet.py")
+    if not cale.exists():
+        return None
+    try:
+        spec = importlib.util.spec_from_file_location("repara_pachet", cale)
+        modul = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(modul)
+        return modul.verifica(z.filename)
+    except Exception:
+        return None
+
+
+def _verificare_locala(z):
+    """Rezerva minimala: doar Ignorable, doar in word/."""
     rupte = []
     for parte in z.namelist():
         if not (parte.startswith("word/") and parte.endswith(".xml")):
@@ -644,15 +679,8 @@ def verifica_spatii_de_nume(z, rap):
         if ign:
             lipsa = [p for p in ign.group(2).split() if p not in declarate]
             if lipsa:
-                rupte.append("%s (%s)" % (parte, " ".join(lipsa)))
-
-    if rupte:
-        rap.bloc("Word va refuza fisierul: Ignorable enumera prefixe nedeclarate in "
-                 + "; ".join(rupte)
-                 + ". Repara cu: python ~/.claude/skills/docx-footnotes/scripts/"
-                   "repara_pachet.py repara --input <fisier>")
-    else:
-        rap.bun("spatii de nume corecte, Word deschide pachetul")
+                rupte.append("%s: Ignorable enumera %s" % (parte, " ".join(lipsa)))
+    return rupte
 
 
 def main(argv=None):

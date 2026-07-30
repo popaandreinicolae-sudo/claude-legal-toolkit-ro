@@ -70,8 +70,11 @@ AI_WORDS_RO = [
     'viitorul pare', 'exista inca multe', 'implicatiile sunt vaste',
     'prezenta lucrare isi propune', 'aceasta analiza trece in revista',
     'documentul de fata',
-    'serveste drept', 'se prezinta ca', 'reprezinta',
-    'constituie', 'functioneaza ca', 'actioneaza ca',
+    # 'reprezinta' si 'constituie' au fost scoase din lista pe 30 iulie 2026:
+    # in registrul juridic academic al autorului sunt preferate fata de 'este',
+    # iar regula generala e calibrata pe text de alt tip.
+    'serveste drept', 'se prezinta ca',
+    'functioneaza ca', 'actioneaza ca',
     'se lauda cu',
     'holistic', 'holistica', 'multifatetat', 'multidimensional',
     'sa exploram', 'vom vedea ca', 'ne propunem sa',
@@ -204,8 +207,11 @@ CHATBOT_ARTIFACTS = [
 ]
 
 COPULA_AVOIDANCE_RO = [
-    'serveste drept', 'se prezinta ca', 'reprezinta',
-    'constituie', 'functioneaza ca', 'actioneaza ca',
+    # 'reprezinta' si 'constituie' au fost scoase din lista pe 30 iulie 2026:
+    # in registrul juridic academic al autorului sunt preferate fata de 'este',
+    # iar regula generala e calibrata pe text de alt tip.
+    'serveste drept', 'se prezinta ca',
+    'functioneaza ca', 'actioneaza ca',
     'se lauda cu', 'ofera o imagine',
 ]
 

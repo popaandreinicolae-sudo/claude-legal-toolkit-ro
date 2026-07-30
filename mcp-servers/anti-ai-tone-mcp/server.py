@@ -175,7 +175,8 @@ def format_suggestions(data: dict) -> str:
     if metrics.get('copula_total', 0) > 3:
         suggestions.append(
             "4. Restaureaza 'este/are' in locul circumlocuiilor. "
-            "'X reprezinta Y' devine 'X este Y'. 'X serveste drept Y' devine 'X este Y'."
+            "'X serveste drept Y' devine 'X este Y'. "
+            "'reprezinta' si 'constituie' NU se schimba: sunt registrul juridic al autorului."
         )
     if metrics.get('chatbot_total', 0) > 0:
         suggestions.append(

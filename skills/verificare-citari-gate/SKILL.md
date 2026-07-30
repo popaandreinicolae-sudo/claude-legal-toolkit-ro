@@ -23,10 +23,12 @@ Pe masura ce scrii o citare pe care nu ai verificat-o efectiv printr-o sursa in 
 ### Pasul 2, verificare prin surse primare
 
 Inainte de livrare, validezi fiecare citare:
-- decizii CCR si legislatie RO, prin MCP `legal-verificator-ro`;
+- decizii CCR si legislatie RO, prin MCP `legal-verificator-ro`, cu sintact ca sursa de referinta;
 - jurisprudenta CEDO, prin MCP `hudoc`;
 - legislatie si jurisprudenta UE, prin MCP `eurlex`, cu atentie speciala la statutul in vigoare/abrogat (tool `check_in_force`);
 - doctrina, prin MCP `doctrine-verifier`.
+
+Pentru legislatia romaneasca, verdictul se ia pe sintact. Un act confirmat doar pe lege5, lege6 sau legislatie.just.ro nu e verificat, ci doar plauzibil, fiindca sursele acelea intorc forma publicata initial si pot confunda acte cu acelasi numar. Serverul marcheaza singur raspunsurile lor cu `sursa_de_rezerva` si `avertisment_sursa`; cand vezi campurile astea, verdictul ramane NEVERIFICAT pana la confirmarea pe sintact.
 
 Pentru verificare rapida deterministica poti rula direct:
 
@@ -49,3 +51,7 @@ Pentru documentele cu miza externa, invoci subagentul `citation-verifier` („ve
 ## Capcane cunoscute (din audit)
 
 Transpunerea NIS, „Legea 58/2019" folosita gresit (verifica actul exact aplicabil). Acte UE abrogate citate ca temei operativ. Decizii ICCJ inexistente cu citat verbatim. Numere de decizii CCR plauzibile dar fabricate. Denumiri institutionale depasite (MFP in loc de MF din 2021). Volumul mare de citari coreleaza cu risc crescut de fabricare, nu cu rigoare.
+
+Omonimia pe numar, iulie 2026. Cautarea dupa numar pe legislatie.just.ro a intors Hotararea Camerei Deputatilor nr. 11/2018, despre componenta comisiilor, in locul H.G. nr. 11/2018, care aproba Normele metodologice de aplicare a Legii nr. 295/2004. Pe baza ei am „corectat" o citare buna a autorului intr-un act abrogat, H.G. nr. 130/2005, pe care H.G. nr. 11/2018 il abrogase expres prin art. 9 alin. (2). Un act se confirma dupa titlu si emitent, nu dupa numar si an, iar citarea autorului se presupune verificata de el pana la proba contrara pe sintact.
+
+Forma neconsolidata, iulie 2026. Fara cont, lege5 a servit art. 1 din Legea nr. 232/2016 fara alin. (3), introdus prin Legea nr. 266/2022. Absenta unui alineat intr-o sursa de rezerva nu e o constatare, ci un artefact al sursei.

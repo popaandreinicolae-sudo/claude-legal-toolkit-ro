@@ -263,6 +263,12 @@ LLM-urile evită „este/sunt" prin substituiri pompoase. Restaurează „este/a
 
 Excepție: păstrează aceste verbe DOAR când au sens specific (ex: „reprezintă" în sens politic).
 
+**Excepție permanentă, textele juridice ale acestui autor:** „reprezintă" și „constituie"
+se păstrează. Autorul le preferă explicit față de „este/sunt", ca registru academic, iar
+regula de mai sus a fost calibrată pe text de alt tip. Celelalte perifraze din listă rămân
+interzise. Stratul determinist nu le mai numără începând cu 30 iulie 2026.
+
+
 ---
 
 ### REGULA 13: ZERO „SUPERFICIAL -ING ANALYSIS"
