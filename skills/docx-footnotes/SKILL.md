@@ -246,6 +246,42 @@ insertii urmarite.
 Referinta din corp ramane superscript automat, iar textul notei se aliniaza justified,
 cu interlinie simpla, fara alineat de prima linie.
 
+## Capcana care ucide livrarea, spatiile de nume
+
+Word raspunde „Word found unreadable content" si refuza sa deschida fisierul cand
+atributul `Ignorable` din spatiul Markup Compatibility enumera un prefix pe care
+radacina nu il declara. Pachetul e XML valid, se deschide fara reproa in python-docx,
+trece validarea de structura si verificarea de format. Word nu il arata.
+
+Lectia e platita. Pe 29 iulie 2026 o excepție de neconstituționalitate a plecat catre
+client si nu s-a deschis. Cauza: `assets/sablon-casa.docx` fusese serializat cu lxml,
+care a rebotezat prefixele originale in `ns1`, `ns2`, `ns3`, fara sa rescrie lista din
+`Ignorable`. Cele zece prefixe de acolo, `w14 w15 w16se w16cid w16 w16cex w16sdtdh
+w16sdtfl w16du wp14`, nu mai erau declarate nicaieri. Defectul statea in
+`word/document.xml` si in `word/numbering.xml`, deci il moștenea fiecare document
+generat din sablon.
+
+Sablonul e reparat, iar copia de dinainte sta alaturi,
+`sablon-casa.inainte-de-reparatie-20260730.docx`. Verificarea si reparatia stau in
+`scripts/repara_pachet.py`:
+
+```bash
+python scripts/repara_pachet.py verifica --input act.docx
+python scripts/repara_pachet.py repara  --input act.docx
+```
+
+`scrie_document.py` si `creeaza_document.py` cheama `repara_pachet.asigura()` dupa
+fiecare salvare, deci un document generat de ele nu mai poate pleca rupt. Verificarea
+nu se sare nici cand sablonul e curat, fiindca serializarea poate reintroduce defectul
+oricand.
+
+Aceeasi verificare blocheaza in `docx-livrare-check` si in `docx_track_changes.py
+verify`. Pe suprafetele care nu pot rula scripturi de skill, adica in Claude Desktop,
+cheama instrumentul `docx_verifica_pachet` din serverul MCP `persona-adrian-zamfir`.
+
+Regula: orice .docx produs programatic trece prin verificarea de spatii de nume inainte
+de a fi trimis. Nicio alta verificare nu prinde defectul acesta.
+
 ## Metadate
 
 Documentul generat de la zero primeste numele tau la ambele campuri.
@@ -292,3 +328,5 @@ Pe suprafata Claude Code regula nu se aplica, fiindca acolo scrii direct pe disc
    „elimina tracked changes inainte de livrare" se aplica numai documentelor livrate
    curat.
 5. Verifica deschiderea inainte de livrare, cu `docx-livrare-check`.
+6. Niciun .docx generat programatic nu pleaca fara verificarea de spatii de nume.
+   Formatul poate fi impecabil si Word sa refuze totusi fisierul.

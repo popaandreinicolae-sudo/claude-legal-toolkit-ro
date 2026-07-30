@@ -39,6 +39,9 @@ except ImportError:
 AICI = Path(__file__).resolve().parent
 SABLON = AICI.parent / "assets" / "sablon-casa.docx"
 
+sys.path.insert(0, str(AICI))
+import repara_pachet  # noqa: E402  spatiile de nume se verifica dupa fiecare salvare
+
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
 # Formatul academic nu are sablon, fiindca nu exista in corpusul propriu. Ramane singurul
@@ -144,6 +147,9 @@ def main(argv=None) -> int:
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     doc.save(str(args.output))
+    # Word refuza un pachet in care Ignorable enumera prefixe nedeclarate, chiar daca
+    # fisierul e XML valid si se deschide fara reproa in python-docx.
+    repara_pachet.asigura(args.output)
     rezumat(doc, args.output, args.academic)
     return 0
 

@@ -60,13 +60,44 @@ def target_path(payload) -> Path | None:
     return p
 
 
+def _docx_note(p: Path) -> str:
+    """Textul notelor de subsol si de final, care nu trece prin python-docx.
+
+    Intr-un act juridic, aparatul critic sta aproape tot in note: deciziile Curtii cu
+    numarul si Monitorul Oficial, actele normative, directivele. python-docx expune doar
+    paragrafele din corp, deci un strat care se opreste acolo nu vede tocmai citarile pe
+    care e pus sa le pazeasca. Masurat pe excepția de neconstituționalitate din dosarul
+    Transcarpat, 30 iulie 2026: 10 citari in corp, 14 in note, 5 dintre ele nicaieri
+    altundeva.
+    """
+    import re as _re
+    import zipfile as _zip
+    bucati = []
+    try:
+        with _zip.ZipFile(p) as z:
+            for parte in ('word/footnotes.xml', 'word/endnotes.xml'):
+                if parte not in z.namelist():
+                    continue
+                xml = z.read(parte).decode('utf-8', 'replace')
+                bucati.extend(_re.findall(r'<w:t[^>]*>(.*?)</w:t>', xml, _re.S))
+    except Exception:
+        return ""
+    text = " ".join(bucati)
+    for cod, car in (('&amp;', '&'), ('&lt;', '<'), ('&gt;', '>'),
+                     ('&quot;', '"'), ('&apos;', "'")):
+        text = text.replace(cod, car)
+    return text
+
+
 def read_text(p: Path) -> str:
     if p.suffix.lower() == '.docx':
         try:
             from docx import Document
-            return "\n".join(par.text for par in Document(str(p)).paragraphs if par.text.strip())
+            corp = "\n".join(par.text for par in Document(str(p)).paragraphs if par.text.strip())
         except Exception:
             return ""
+        note = _docx_note(p)
+        return (corp + "\n" + note) if note else corp
     try:
         return p.read_text(encoding='utf-8', errors='ignore')
     except Exception:

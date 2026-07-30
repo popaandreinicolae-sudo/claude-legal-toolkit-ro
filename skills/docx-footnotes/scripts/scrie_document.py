@@ -55,6 +55,9 @@ except ImportError:
 AICI = Path(__file__).resolve().parent
 SABLON = AICI.parent / "assets" / "sablon-casa.docx"
 
+sys.path.insert(0, str(AICI))
+import repara_pachet  # noqa: E402  spatiile de nume se verifica dupa fiecare salvare
+
 # Masurat pe actele proprii. Corpul se numeroteaza [1], [2], [3], cu paranteze drepte,
 # prin fluxul 41; enumerarile din interiorul corpului folosesc liniuta, fluxul 37.
 # numId=0 anuleaza numerotarea mostenita din stil, folosit la blocul partilor.
@@ -219,6 +222,10 @@ def main(argv=None) -> int:
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     doc.save(str(args.output))
+    # Word refuza un pachet in care Ignorable enumera prefixe nedeclarate, chiar daca
+    # fisierul e XML valid. Serializarea poate reintroduce defectul, deci se verifica
+    # dupa fiecare salvare, nu doar cand sablonul e suspect.
+    repara_pachet.asigura(args.output)
 
     cu_text = sum(1 for p in doc.paragraphs if p.text.strip())
     cu_bold = sum(1 for p in doc.paragraphs if p.text.strip() and any(r.bold for r in p.runs))

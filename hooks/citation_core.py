@@ -36,10 +36,29 @@ _ACT_WORD = r"(Legea|Lege|O\.?U\.?G\.?|Ordonanta de urgenta|O\.?G\.?|Ordonanta|H
 _NUM_YEAR = r"(\d{1,4})\s*[\/]\s*(\d{4})"
 
 # Permite un token de instanta intre "Decizia" si numar (ICCJ, CCR, nr., a Curtii...).
-RE_CCR = re.compile(r"Deciz(?:ia|ie)\b[^\d\n]{0,18}?(\d{1,5})\s*(?:\/|din)\s*(\d{4})", re.IGNORECASE)
+#
+# Data completa e obligatorie in citarea juridica romaneasca, "Decizia nr. 363 din 7 mai
+# 2015", si asa scriem in acte. Pattern-ul cerea insa anul imediat dupa "din", deci
+# prindea numai forma scurta "Decizia nr. 22/2016" si rata tocmai forma pe care o
+# folosim la livrare. Ziua si luna sunt acum optionale intre "din" si an.
+# Curtea scrie numerele de peste o mie cu punct, "Decizia nr. 1.205 din 20 septembrie
+# 2011". Punctul se accepta la citire si se scoate la normalizare, ca cheia sa fie una
+# singura pentru aceeasi decizie.
+RE_CCR = re.compile(
+    r"Deciz(?:ia|ie|iei|iile|iilor)\b[^\d\n]{0,18}?(\d{1,2}\.\d{3}|\d{1,5})"
+    r"\s*(?:\/|din)\s*(?:\d{1,2}\s*[^\d\n]{2,14}?\s*)?(\d{4})",
+    re.IGNORECASE)
 RE_ACT = re.compile(_ACT_WORD + r"\s*(?:nr\.?\s*)?" + _NUM_YEAR, re.IGNORECASE)
-RE_DIR = re.compile(r"Directiv[aei]\s*(?:nr\.?\s*)?(\(UE\)\s*)?(\d{1,4})\s*[\/]\s*(\d{1,4})\s*[\/]?\s*(CE|UE|CEE)?", re.IGNORECASE)
-RE_REG = re.compile(r"Regulamentul\s*(?:\(UE\)\s*)?(?:nr\.?\s*)?(\d{1,5})\s*[\/]\s*(\d{4})", re.IGNORECASE)
+# Formele flexionate conteaza. In textul juridic romanesc actul apare mai des la genitiv
+# sau dativ, "potrivit Directivei 2009/73/CE", decat la nominativ. Clasa [aei] prindea
+# "Directive" si se oprea inainte de "i" din "Directivei", deci ratam tocmai forma
+# dominanta, iar verificarea de act abrogat nu se declansa niciodata pe ea.
+RE_DIR = re.compile(r"Directiv(?:elor|ele|ei|a|e)\s*(?:nr\.?\s*)?(\(UE\)\s*)?(\d{1,4})\s*[\/]\s*(\d{1,4})\s*[\/]?\s*(CE|UE|CEE)?", re.IGNORECASE)
+# Numerotarea europeana s-a inversat in 2015. Pana atunci numar/an, "Regulamentul nr.
+# 1234/2013"; de atunci an/numar, "Regulamentul (UE) 2016/679". Cerand patru cifre la
+# final, pattern-ul rata tot ce e adoptat dupa 2015, inclusiv GDPR. Acum accepta ambele
+# ordini, iar anul se recunoaste dupa forma lui.
+RE_REG = re.compile(r"Regulament(?:elor|ele|ului|ul|e)?\s*(?:\(UE\)\s*)?(?:nr\.?\s*)?(\d{1,5})\s*[\/]\s*(\d{1,5})", re.IGNORECASE)
 RE_CJUE = re.compile(r"\b([CT])-(\d{1,4})\s*[\/]\s*(\d{2,4})\b")
 
 _ACT_TYPE_MAP = {
@@ -68,13 +87,20 @@ def extract_citations(text: str) -> list:
             found[key] = d
 
     for m in RE_CCR.finditer(text):
-        add("ccr", m.group(1), m.group(2), m.group(0))
+        add("ccr", m.group(1).replace(".", ""), m.group(2), m.group(0))
     for m in RE_ACT.finditer(text):
         add("act", m.group(2), m.group(3), m.group(0), {"act_type": _norm_act(m.group(1))})
     for m in RE_DIR.finditer(text):
         add("eu_directive", m.group(2), m.group(3), m.group(0))
     for m in RE_REG.finditer(text):
-        add("eu_regulation", m.group(1), m.group(2), m.group(0))
+        a, b = m.group(1), m.group(2)
+        # Anul e cel care arata ca un an. Dupa 2015 el sta primul, "2016/679", inainte
+        # sta al doilea, "1234/2013". Normalizam la (numar, an), ca cheia sa fie stabila.
+        if len(a) == 4 and a.startswith(("19", "20")) and not (len(b) == 4 and b.startswith(("19", "20"))):
+            numar, an = b, a
+        else:
+            numar, an = a, b
+        add("eu_regulation", numar, an, m.group(0))
     for m in RE_CJUE.finditer(text):
         add("cjue", f"{m.group(1)}-{m.group(2)}", m.group(3), m.group(0))
 
@@ -226,19 +252,23 @@ def verify_text(text: str, budget_s: float = 16.0, cap: int = 25, network: bool 
     # EU verification (static reference)
     results.update(_verify_eu([c for c in cits if c["kind"].startswith("eu") or c["kind"] == "cjue"], ref))
 
-    # outdated names from reference
+    # Denumirile si numerele de acte se caută pe text cu spatiile normalizate. Intr-un
+    # document real, "Ministerul Finantelor Publice" cade adesea peste sfarsitul de rand,
+    # iar potrivirea pe subsir simplu o rata tocmai in livrabile, nu in teste.
+    text_plat = re.sub(r"\s+", " ", text).lower()
+
     outdated = ref.get("outdated_names", {})  # {"Ministerul Finantelor Publice": "Ministerul Finantelor (din 2021)"}
     for old, new in outdated.items():
-        if old.lower() in text.lower():
+        if re.sub(r"\s+", " ", old).lower() in text_plat:
             out["problems"].append(f"DENUMIRE DEPASITA: '{old}' -> foloseste '{new}'")
     # wrong transpositions — context-gated ca sa NU dea fals-pozitiv pe un numar de lege
     # real folosit in alt context. Semnalam doar daca documentul discuta efectiv tema NIS.
-    nis_context = any(k in text.lower() for k in (
+    nis_context = any(k in text_plat for k in (
         "nis", "securitate cibernetic", "securitatea retelelor", "retele si sisteme informatic",
         "directiva nis", "operator esential", "operator important"))
     if nis_context:
         for wrong, right in ref.get("wrong_transpositions", {}).items():
-            if wrong.lower() in text.lower():
+            if re.sub(r"\s+", " ", wrong).lower() in text_plat:
                 out["problems"].append(f"POSIBILA TRANSPUNERE GRESITA (context NIS): '{wrong}' -> verifica daca actul corect e '{right}'")
 
     for c in cits:

@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Detect AI Tone v2.0 — Comprehensive automated detection of LLM-generated text patterns.
+Detect AI Tone v2.1 — Comprehensive automated detection of LLM-generated text patterns.
+
+Versiunea urmeaza acelasi set de reguli ca serverul MCP anti-ai-tone, inclusiv regula
+DOOM 3 privind apozitiile delimitate prin virgule in limba romana. Eticheta a ramas la
+v2.0 pana pe 30 iulie 2026, desi regulile erau deja cele din v2.1, ceea ce facea sa
+para ca poarta determinista si serverul masoara altceva. Cand se schimba regulile,
+se schimba versiunea in ambele locuri.
 
 Scans Markdown/text documents for 25+ linguistic markers typical of AI text:
 - Overused AI vocabulary (Romanian + English, 200+ terms)
@@ -549,7 +555,7 @@ def run_detection(doc_path, language='auto', output_json=False):
 
 def print_human_report(r):
     print(f"\n{'='*64}")
-    print(f"  ANALIZA DE TON v2.0 - {Path(r['document']).name}")
+    print(f"  ANALIZA DE TON v2.1 - {Path(r['document']).name}")
     print(f"  Limba: {'Romana' if r['language'] == 'ro' else 'Engleza'}")
     print(f"  Cuvinte: {r['word_count']:,}")
     print(f"{'='*64}")
@@ -598,7 +604,7 @@ def print_human_report(r):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Detectare ton AI v2.0')
+    parser = argparse.ArgumentParser(description='Detectare ton AI v2.1')
     parser.add_argument('document', help='Calea catre document')
     parser.add_argument('--language', '-l', choices=['ro', 'en', 'auto'], default='auto')
     parser.add_argument('--json', action='store_true', help='Output JSON')

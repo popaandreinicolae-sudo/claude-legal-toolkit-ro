@@ -27,6 +27,17 @@ DETECT = _SCRIPT_DIR / "detect_ai_tone.py"
 
 
 def _read(path: Path) -> str:
+    """Citirea trece prin hook_common, ca poarta si hook-urile sa vada acelasi text.
+
+    Conteaza la .docx: notele de subsol nu trec prin python-docx, iar intr-un act
+    juridic aparatul critic sta aproape tot acolo. Un cititor propriu care se opreste la
+    corp lasa poarta sa dea GO peste citari pe care nu le-a vazut niciodata.
+    """
+    try:
+        import hook_common
+        return hook_common.read_text(path)
+    except Exception:
+        pass
     if path.suffix.lower() == ".docx":
         try:
             from docx import Document

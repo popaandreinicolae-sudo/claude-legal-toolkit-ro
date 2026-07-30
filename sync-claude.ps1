@@ -32,6 +32,7 @@ $Skills = @(
     'constitutional-law-ro'
     'cyber-law-ro'
     'docx-footnotes'
+    'docx-track-changes'
     'docx-livrare-check'
     'docx-safe-edit'
     'docx-track-changes-review'
@@ -41,9 +42,9 @@ $Skills = @(
     'verificare-citari-gate'
 )
 
-# docx-track-changes NU apare aici. E scris local, nu exista in repo, iar scriptul il
-# raporteaza ca atare si il lasa neatins. Vezi bucla de subagenti pentru acelasi
-# comportament.
+# docx-track-changes a fost adus in repo pe 30 iulie 2026. Pana atunci trai doar in
+# ~/.claude, deci o resincronizare nu il putea restaura, iar reparatiile facute in el se
+# pierdeau la prima rulare a acestui script. Acum e in lista de mai sus.
 
 Write-Host "`n=== SKILL-URI ===" -ForegroundColor Cyan
 foreach ($s in $Skills) {

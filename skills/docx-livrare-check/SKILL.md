@@ -108,6 +108,21 @@ paragrafe cu text si numarul de note. Notele goale blocheaza, la fel referintele
 nota care trimit catre o nota inexistenta, fiindca amandoua se vad in Word ca document
 stricat.
 
+## 4. Spatiile de nume, verificarea care se face prima
+
+Word raspunde „Word found unreadable content" si refuza sa deschida fisierul cand
+atributul `Ignorable` din spatiul Markup Compatibility enumera un prefix pe care
+radacina nu il declara. Defectul nu se vede altfel. Pachetul e XML valid, se deschide
+in python-docx, are formatul corect si trece tot restul verificarilor de aici.
+
+Verificat pe cazul din 29 iulie 2026, cand sablonul skill-ului `docx-footnotes` purta
+defectul si il transmitea fiecarui document generat. De aceea verificarea ruleaza
+prima si blocheaza, iar mesajul spune direct cum se repara:
+
+```bash
+python ~/.claude/skills/docx-footnotes/scripts/repara_pachet.py repara --input act.docx
+```
+
 ## Ordinea la livrare
 
 1. `quality-gate` pe continut, verdict GO sau NO-GO.

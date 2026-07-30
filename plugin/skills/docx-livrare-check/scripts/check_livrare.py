@@ -613,6 +613,48 @@ def verifica_tehnic(z, doc, rap):
             rap.bloc(f"referinte de nota fara nota: {sorted(orfane)}")
 
 
+def verifica_spatii_de_nume(z, rap):
+    """Prinde pachetul pe care Word il refuza inainte sa il arate.
+
+    Word raspunde "Word found unreadable content" cand atributul Ignorable din spatiul
+    Markup Compatibility enumera un prefix pe care radacina nu il declara. Fisierul e
+    XML valid, se deschide fara reproa in python-docx si trece orice verificare de
+    format, dar Word nu il deschide. Defectul apare la serializarea cu lxml, care
+    reboteaza prefixele originale in ns1, ns2, fara sa rescrie lista din Ignorable.
+
+    Verificat pe cazul din 29 iulie 2026: sablonul skill-ului docx-footnotes purta
+    defectul in word/document.xml si in word/numbering.xml, deci il moștenea fiecare
+    document generat. Reparatia sta in
+    ~/.claude/skills/docx-footnotes/scripts/repara_pachet.py.
+    """
+    rupte = []
+    for parte in z.namelist():
+        if not (parte.startswith("word/") and parte.endswith(".xml")):
+            continue
+        try:
+            xml = z.read(parte).decode("utf-8")
+        except (KeyError, UnicodeDecodeError):
+            continue
+        i = xml.find("<w:")
+        if i < 0:
+            continue
+        root = xml[i:xml.find(">", i) + 1]
+        declarate = set(re.findall(r'xmlns:([A-Za-z0-9_]+)=', root))
+        ign = re.search(r'([A-Za-z0-9_]+):Ignorable="([^"]*)"', root)
+        if ign:
+            lipsa = [p for p in ign.group(2).split() if p not in declarate]
+            if lipsa:
+                rupte.append("%s (%s)" % (parte, " ".join(lipsa)))
+
+    if rupte:
+        rap.bloc("Word va refuza fisierul: Ignorable enumera prefixe nedeclarate in "
+                 + "; ".join(rupte)
+                 + ". Repara cu: python ~/.claude/skills/docx-footnotes/scripts/"
+                   "repara_pachet.py repara --input <fisier>")
+    else:
+        rap.bun("spatii de nume corecte, Word deschide pachetul")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Verificare .docx inainte de trimitere")
     ap.add_argument("docx", type=Path)
@@ -633,6 +675,7 @@ def main(argv=None):
         doc = citeste(z, "word/document.xml")
         if doc is None:
             raise SystemExit("word/document.xml lipseste, fisierul nu e un .docx valid")
+        verifica_spatii_de_nume(z, rap)
         verifica_format(z, doc, ref, rap)
         verifica_identitate(z, doc, ref, rap)
         verifica_metadate(z, doc, rap, args.redline)

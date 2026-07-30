@@ -59,7 +59,46 @@ VERSIUNE = versiune()
 IGNORA = shutil.ignore_patterns(
     "__pycache__", "*.pyc", "*.bak", "*.log", "*.tmp",
     ".session", ".citation_cache.json", "session_audit.log",
+    # Copiile lasate de repara_pachet.py inainte de a repara un fisier. Nu au ce cauta
+    # intr-un pachet distribuit, cu atat mai putin un sablon rupt, adica exact ce am
+    # scos din drum.
+    "*.inainte-de-reparatie*",
 )
+
+def docx_rupte(rad) -> list:
+    """Sabloanele .docx din pachet pe care Word le va refuza.
+
+    Word raspunde "Word found unreadable content" cand atributul Ignorable din spatiul
+    Markup Compatibility enumera un prefix pe care radacina nu il declara. Un sablon
+    rupt trimis in pachet strica fiecare document generat din el, pe fiecare masina
+    care instaleaza plugin-ul. Lectie platita pe 29 iulie 2026.
+    """
+    import re as _re
+    import zipfile as _zip
+
+    rupte = []
+    for docx in Path(rad).rglob("*.docx"):
+        try:
+            with _zip.ZipFile(docx) as z:
+                for parte in z.namelist():
+                    if not (parte.startswith("word/") and parte.endswith(".xml")):
+                        continue
+                    xml = z.read(parte).decode("utf-8", "replace")
+                    i = xml.find("<w:")
+                    if i < 0:
+                        continue
+                    root = xml[i:xml.find(">", i) + 1]
+                    declarate = set(_re.findall(r'xmlns:([A-Za-z0-9_]+)=', root))
+                    ign = _re.search(r'([A-Za-z0-9_]+):Ignorable="([^"]*)"', root)
+                    if ign:
+                        lipsa = [p for p in ign.group(2).split() if p not in declarate]
+                        if lipsa:
+                            rupte.append("%s :: %s (%s)"
+                                         % (docx.name, parte, " ".join(lipsa)))
+        except _zip.BadZipFile:
+            rupte.append("%s :: arhiva invalida" % docx.name)
+    return rupte
+
 
 # Fisierele din hooks/ care nu au ce cauta intr-un pachet distribuit.
 HOOKS_EXCLUSE = {
@@ -225,6 +264,16 @@ def main() -> int:
             "source": "./plugin",
         }],
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
+
+    rupte = docx_rupte(IESIRE)
+    if rupte:
+        print("\nPACHETUL NU A FOST ARHIVAT. Sabloane .docx pe care Word le refuza:",
+              file=sys.stderr)
+        for r in rupte:
+            print("  -", r, file=sys.stderr)
+        print("Repara cu: python skills/docx-footnotes/scripts/repara_pachet.py "
+              "repara --input <fisier>", file=sys.stderr)
+        return 1
 
     # Arhiva pentru "Upload plugin" din Claude Desktop, care cere un fisier, nu un
     # director. Radacina arhivei este chiar radacina plugin-ului, deci `.claude-plugin`

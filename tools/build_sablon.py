@@ -46,6 +46,28 @@ DE_GOLIT = {f"{{{DC}}}title", f"{{{DC}}}subject", f"{{{DC}}}description",
             f"{{{CP}}}revision", f"{{{DC}}}identifier"}
 
 
+def inregistreaza_prefixele(xml: bytes) -> None:
+    """Inregistreaza prefixele exact cum le-a scris Word, inainte de serializare.
+
+    ElementTree nu tine minte prefixele, doar URI-urile. La `tostring` inventeaza
+    ns0, ns1, ns2 pentru orice namespace neinregistrat. Atributul `mc:Ignorable` e insa
+    un simplu sir de text care enumera prefixe, iar ElementTree nu are cum sa il
+    rescrie. Rezultatul: radacina declara Markup Compatibility drept ns1, iar Ignorable
+    trimite la w14, w15, wp14 si celelalte, care nu mai sunt declarate nicaieri.
+
+    Word refuza atunci fisierul cu "Word found unreadable content", desi pachetul e XML
+    valid, se deschide in python-docx si trece orice verificare de format. Lectie
+    platita pe 29 iulie 2026, cand un act generat din sablon nu s-a deschis la client.
+
+    Inregistrarea rezolva prefixele chiar folosite in arbore, mc si r. Pe cele declarate
+    dar nefolosite, w14 w15 w16se si celelalte, ElementTree le lasa afara oricum, fiindca
+    nu emite o declaratie pentru un namespace pe care nimic din arbore nu il atinge.
+    Acelea se pun inapoi la final, cu repara_pachet.asigura(), vezi main().
+    """
+    for prefix, uri in re.findall(rb'xmlns:([A-Za-z0-9_]+)="([^"]+)"', xml[:4000]):
+        ET.register_namespace(prefix.decode(), uri.decode())
+
+
 def goleste_corpul(xml: bytes) -> bytes:
     """Scoate tot continutul din corp si pastreaza numai sectPr.
 
@@ -53,6 +75,7 @@ def goleste_corpul(xml: bytes) -> bytes:
     subsol, referintele catre ele si `titlePg`. Fara el, documentul pierde tocmai ce am
     venit sa pastram.
     """
+    inregistreaza_prefixele(xml)
     ET.register_namespace("w", W)
     root = ET.fromstring(xml)
     body = root.find(f"{Wn}body")
@@ -75,6 +98,7 @@ def goleste_corpul(xml: bytes) -> bytes:
 
 
 def curata_proprietatile(xml: bytes) -> bytes:
+    inregistreaza_prefixele(xml)
     ET.register_namespace("cp", CP)
     ET.register_namespace("dc", DC)
     root = ET.fromstring(xml)
@@ -95,6 +119,7 @@ def reseteaza_numerotarea(xml: bytes) -> bytes:
     aparea ca [21]. Un sablon numeroteaza mereu de la inceput, deci punem `start` pe 1
     la nivelul zero si scoatem suprascrierile de start.
     """
+    inregistreaza_prefixele(xml)
     ET.register_namespace("w", W)
     root = ET.fromstring(xml)
 
@@ -139,6 +164,31 @@ def curata_tipurile(xml: bytes, scoase: set[str]) -> bytes:
         if el.tag.endswith("Override") and (el.get("PartName") or "").lstrip("/") in scoase:
             root.remove(el)
     return ET.tostring(root, encoding="UTF-8", xml_declaration=True)
+
+
+def verifica_spatiile_de_nume(cale: Path) -> list:
+    """Partile in care Ignorable enumera prefixe pe care radacina nu le declara.
+
+    Verificarea nu se sare. Serializarea poate reintroduce defectul oricand, iar Word
+    refuza atunci fisierul fara sa spuna de ce, dupa ce a trecut tot restul.
+    """
+    rupte = []
+    with zipfile.ZipFile(cale) as z:
+        for parte in z.namelist():
+            if not (parte.startswith("word/") and parte.endswith(".xml")):
+                continue
+            xml = z.read(parte).decode("utf-8", "replace")
+            i = xml.find("<w:")
+            if i < 0:
+                continue
+            root = xml[i:xml.find(">", i) + 1]
+            declarate = set(re.findall(r'xmlns:([A-Za-z0-9_]+)=', root))
+            ign = re.search(r'([A-Za-z0-9_]+):Ignorable="([^"]*)"', root)
+            if ign:
+                lipsa = [p for p in ign.group(2).split() if p not in declarate]
+                if lipsa:
+                    rupte.append("%s (%s)" % (parte, " ".join(lipsa)))
+    return rupte
 
 
 def raport(cale: Path) -> None:
@@ -198,10 +248,31 @@ def main(argv=None) -> int:
                 date = curata_tipurile(date, DE_SCOS)
             zout.writestr(item, date)
 
+    # Declaratiile pierdute la serializare se pun inapoi, apoi se verifica. Reparatia se
+    # face pe fisierul temporar, ca un sablon rupt sa nu ajunga niciodata la destinatie.
+    # Word nu spune de ce refuza, deci defectul ar merge nedetectat pana la client, in
+    # fiecare document generat din sablon.
+    sys.path.insert(0, str(REPO / "skills" / "docx-footnotes" / "scripts"))
+    import repara_pachet
+
+    puse = repara_pachet.repara(temporar, backup=False)
+    for p in puse:
+        print("  declaratii puse inapoi, %s" % p)
+
+    rupte = verifica_spatiile_de_nume(temporar)
+    if rupte:
+        temporar.unlink(missing_ok=True)
+        print("SABLONUL NU A FOST SCRIS. Ignorable enumera prefixe nedeclarate in "
+              + "; ".join(rupte), file=sys.stderr)
+        print("Reparatia automata nu a rezolvat. Deschide actul-sursa in Word, "
+              "salveaza-l, apoi reia.", file=sys.stderr)
+        return 1
+
     shutil.move(str(temporar), str(TINTA))
     print(f"sablon scris din {args.sursa.name}")
     print(f"  -> {TINTA}  ({TINTA.stat().st_size // 1024} KB)")
     raport(TINTA)
+    print("  spatii de nume: in regula, Word deschide pachetul")
     return 0
 
 
