@@ -246,6 +246,36 @@ verificate de `scripts/selftest.py`.
 python ~/.claude/skills/docx-track-changes/scripts/selftest.py
 ```
 
+## Accentul pe termeni definiti, ca revizie urmarita
+
+`docx_track_changes.py` marcheaza inserari si stergeri de text. Formatarea nu intra pe
+acolo, iar pe 30 iulie 2026 bold-ul a fost pus direct pe text, nemarcat, cu consecinta ca
+Reject All reda cuvintele autorului dar lasa accentul pe ele. Garantia redlineului se
+rupea tocmai la proprietatea pe care o verificam.
+
+`scripts/docx_accent.py` scrie bold-ul cu `w:rPrChange`, adica forma pe care o produce
+Word cand urmareste o schimbare de formatare. Word o arata in panoul Review, iar Reject
+All readuce formatarea anterioara.
+
+```bash
+python ~/.claude/skills/docx-track-changes/scripts/docx_accent.py apply     --input act.docx --output act_accentuat.docx     --termeni ~/.claude/skills/docx-track-changes/assets/termeni-accent-juridic.json     --author "AMZ Law Office"
+```
+
+Lista de termeni livrata acoperă materia constitutionala si regimul armelor, 77 de
+termeni si 24 de familii de forme flexionate. Se extinde pe act, nu se rescrie.
+
+Doua plafoane tin accentul departe de bold mecanic, interzis de regula 22 din
+anti-ai-tone. Maximum doua expresii pe paragraf, prima aparitie. Maximum patru accente pe
+termen in tot documentul, formele flexionate socotite impreuna. Fara plafonul al doilea,
+„destinația militară" ieșea accentuat de treizeci si doua de ori intr-un singur act.
+
+Acoperirea se ridica adaugand termeni distincti in lista, nu ridicand plafonul. Un plafon
+mare concentreaza accentul pe aceleasi cateva noțiuni, adica exact ce trebuie evitat.
+Masurat pe actele proprii, bold-ul cade in 53% din paragrafe.
+
+`--netrasat` pune bold-ul fara marcaj, la cerere expresa. Atunci Reject All nu mai
+reproduce formatarea originala, doar cuvintele, si scriptul o spune la stderr.
+
 ## Verificarea de spatii de nume, in `verify`
 
 `verify` cade cu cod 1 cand atributul `Ignorable` din spatiul Markup Compatibility
