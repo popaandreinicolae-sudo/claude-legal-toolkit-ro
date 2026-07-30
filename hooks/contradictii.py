@@ -101,11 +101,21 @@ def termeni_sub_instructiune(fraza: str) -> set:
     return {x for x in t if x and not x.isdigit() and x not in PREA_COMUNE}
 
 
-# Negarea unui verb de inlocuire inseamna pastrare, nu inlocuire. Fara regula asta,
-# "reprezinta si constituie NU se schimba" era citit drept instructiune de inlocuire, adica
-# exact pe dos, si producea doua semnalari false din trei la prima rulare.
+# Doua feluri de fraza care par interdictii si sunt de fapt pastrari.
+#
+# Negarea unui verb de inlocuire: "reprezinta si constituie NU se schimba". Fara regula
+# asta era citita drept instructiune de inlocuire, adica exact pe dos, si a produs doua
+# semnalari false din trei la prima rulare.
+#
+# Scutirea de la o regula: "nu mai fac parte din aceasta regula", "nu intra in lista",
+# "sunt exceptate". Termenul scutit e pastrat, nu interzis. A produs ultima semnalare
+# falsa, chiar pe fraza scrisa ca sa lamureasca conflictul de dinainte.
 NEGARE_DE_INLOCUIRE = re.compile(
-    r"\bnu\s+(?:se\s+|mai\s+)?(?:schimb|inlocui|înlocui|corect|modific|elimin|scoat)", re.I)
+    r"\bnu\s+(?:se\s+|mai\s+)?(?:schimb|inlocui|înlocui|corect|modific|elimin|scoat)"
+    r"|\bnu\s+(?:mai\s+)?(?:fac|face)\s+parte"
+    r"|\bnu\s+(?:mai\s+)?(?:intra|intr[ăa])\b"
+    r"|\bnu\s+(?:se\s+)?aplic[ăa]\b"
+    r"|\b(?:sunt|este)\s+exceptat|\bau\s+iesit\s+din\b|\bam\s+scos\s+din\b", re.I)
 
 # Cuvinte prea comune ca sa fie termeni sub instructiune. "este" apare in fiecare regula de
 # copula ca tinta a inlocuirii, si aduna tot ce contine cuvantul.

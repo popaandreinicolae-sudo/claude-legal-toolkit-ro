@@ -216,8 +216,11 @@ COPULA_AVOIDANCE_RO = [
 ]
 
 COPULA_AVOIDANCE_EN = [
+    # 'represents' si 'constitutes' au iesit odata cu perechile lor romanesti, ca lista sa
+    # nu se contrazica de la o limba la alta: acelasi text tradus ar fi fost semnalat intr-o
+    # limba si curat in cealalta.
     'serves as', 'stands as', 'functions as', 'acts as',
-    'represents', 'constitutes', 'boasts', 'features',
+    'boasts', 'features',
 ]
 
 

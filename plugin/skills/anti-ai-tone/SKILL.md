@@ -254,19 +254,26 @@ LLM-urile evită „este/sunt" prin substituiri pompoase. Restaurează „este/a
 Înlocuiește:
 - „serves as" / „servește drept" → „este"
 - „stands as" / „se prezintă ca" → „este"
-- „represents" (când înseamnă „este") / „reprezintă" → „este"
-- „constitutes" / „constituie" → „este"
 - „functions as" / „funcționează ca" → „este"
 - „acts as" / „acționează ca" → „este"
 - „boasts" / „se laudă cu" → „are"
 - „features" / „prezintă" → „are"
 
-Excepție: păstrează aceste verbe DOAR când au sens specific (ex: „reprezintă" în sens politic).
+Excepție: păstrează aceste verbe DOAR când au sens specific.
 
-**Excepție permanentă, textele juridice ale acestui autor:** „reprezintă" și „constituie"
-se păstrează. Autorul le preferă explicit față de „este/sunt", ca registru academic, iar
-regula de mai sus a fost calibrată pe text de alt tip. Celelalte perifraze din listă rămân
-interzise. Stratul determinist nu le mai numără începând cu 30 iulie 2026.
+**„reprezintă" și „constituie" nu mai fac parte din această regulă.** Le-am scos din listă
+pe 30 iulie 2026, la cererea autorului: le preferă explicit față de „este/sunt", ca registru
+academic al textului juridic, iar regula fusese calibrată pe text de alt tip. Echivalentele
+engleze, „represents" și „constitutes", au ieșit odată cu ele, ca lista să nu se contrazică
+de la o limbă la alta.
+
+Cât timp au stat aici, au produs singura contradicție reală din tot toolkitul. Textul
+injectat la fiecare mesaj al autorului îi cerea modelului, cuvânt cu cuvânt, contrariul
+instrucțiunii lui, iar conflictul a fost găsit din întâmplare, în timpul unui audit cerut
+din alt motiv.
+
+Stratul determinist nu le mai numără. Verificarea de contradicții, `/verificare`, se uită
+la lista asta la fiecare rulare.
 
 
 ---
