@@ -91,8 +91,13 @@ doc.add_paragraph("cerere de chemare in judecata", style="Heading1")
 p = doc.add_paragraph("Prin avizul negativ ...", style="Bodycunrdeparagraf")
 ```
 
-**Numerotarea nu se scrie in text.** Paragrafele de corp o primesc din `w:numPr`, deci
-niciodata „1.", „2." tastate. 61% din paragrafele proprii sunt numerotate automat.
+**Numerotarea corpului nu se scrie in text.** Paragrafele de corp o primesc din `w:numPr`,
+deci niciodata „1.", „2." tastate. 61% din paragrafele proprii sunt numerotate automat.
+
+**Capetele de cerere fac excepatie.** Acolo numarul se scrie chiar in text, pe stilul
+simplu. Masurat pe actele proprii, 18 din 18 capete de cerere au numarul tastat si
+niciunul nu e numerotat automat. Motivul e practic: petitul se citeaza in dispozitiv si
+in corespondenta, deci numarul trebuie sa se copieze impreuna cu textul.
 
 **Bold-ul e des si intentionat.** 53% din paragrafele proprii contin cel putin un pasaj
 bold, termenii definiti, denumirile partilor, temeiurile invocate. Un act fara bold nu
