@@ -329,7 +329,42 @@ def main() -> int:
     print(f"  hooks/   {n_hk} fisiere")
     print(f"  marketplace: {marketplace / 'marketplace.json'}")
     print(f"  arhiva:      {arhiva}  ({arhiva.stat().st_size // 1024} KB)")
+    avertizeaza_daca_nu_e_publicat()
     return 0
+
+
+# Remote-ul din care Claude Desktop isi ia plugin-ul, prin marketplace.
+REMOTE_MARKETPLACE = "personal"
+
+
+def avertizeaza_daca_nu_e_publicat() -> None:
+    """Spune raspicat cand constructia locala nu a ajuns inca in marketplace.
+
+    Claude Desktop nu citeste dosarul plugin/ de pe disc. Il ia din marketplace, adica din
+    repo-ul de pe GitHub. O constructie locala reusita nu inseamna nimic pentru Desktop
+    pana la push, iar dezinstalarea si reinstalarea plugin-ului reinstaleaza tot versiunea
+    veche de pe remote.
+
+    Pe 30 iulie 2026 asa s-au pierdut cateva reinstalari degeaba: local era 1.0.43, iar
+    Desktop arata 1.0.29, adica ultimul push, de acum zece ore. Constructorul raporta
+    "scris in plugin/" si tacea despre singurul pas care conta.
+    """
+    try:
+        neimpinse = subprocess.run(
+            ["git", "rev-list", "--count", "%s/main..HEAD" % REMOTE_MARKETPLACE],
+            cwd=REPO, capture_output=True, text=True, check=True,
+        ).stdout.strip()
+    except Exception:  # noqa: BLE001
+        print("\n  (nu am putut verifica daca versiunea e publicata; ruleaza git fetch)")
+        return
+
+    if neimpinse and neimpinse != "0":
+        print("\n  ATENTIE: %s commituri nu sunt inca in marketplace." % neimpinse)
+        print("  Claude Desktop ia plugin-ul din repo-ul de pe GitHub, nu din dosarul local,")
+        print("  deci reinstalarea lui va aduce tot versiunea veche. Publica intai:")
+        print("      git push %s main" % REMOTE_MARKETPLACE)
+    else:
+        print("\n  versiunea e publicata in marketplace; reinstalarea din Desktop o va lua")
 
 
 if __name__ == "__main__":
