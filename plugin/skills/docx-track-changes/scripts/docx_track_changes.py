@@ -949,18 +949,39 @@ def apply_revisions(part: Part, new_texts, author, date, ids, stats, caps_styles
     last_index = len(paragraphs) - 1
     pending_inserts = []
 
-    def flush_inserts(anchor, position):
+    def _sursa_formei(anchor, precedent):
+        """Paragraful de la care noul paragraf isi ia forma.
+
+        Se prefera cel precedent, fiindca textul adaugat continua sectiunea in care a
+        fost introdus. Ancora era pana acum paragraful urmator, ceea ce mergea prost
+        exact in cazul frecvent al materialului adaugat la sfarsitul unei sectiuni:
+        urmatorul e titlul sectiunii care incepe, iar paragrafele noi ieseau cu stilul
+        de titlu, deci cu majuscule si cu culoarea titlului. Semnalat de autor pe
+        30 iulie 2026, pe redlineul exceptiei Transcarpat.
+
+        Cand precedentul afiseaza majuscule, adica e la rândul lui un titlu, se trece
+        pe cel urmator. Daca amandoua sunt titluri, rămâne ancora, ca sa nu se piarda
+        poziția.
+        """
+        if precedent is None:
+            return anchor
+        if afiseaza_majuscule(precedent, caps_styles) and not afiseaza_majuscule(anchor, caps_styles):
+            return anchor
+        return precedent
+
+    def flush_inserts(anchor, position, precedent=None):
         nonlocal pending_inserts
+        sursa = _sursa_formei(anchor, precedent)
         for text in pending_inserts:
             new_p = etree.Element(w("p"))
-            ppr = anchor.find(w("pPr"))
+            ppr = sursa.find(w("pPr"))
             if ppr is not None:
                 new_p.append(deepcopy(ppr))
                 sect = new_p.find(w("pPr") + "/" + w("sectPr"))
                 if sect is not None:
                     new_p.find(w("pPr")).remove(sect)
             template_rpr = None
-            for a in decompose(anchor):
+            for a in decompose(sursa):
                 if a.kind == "text":
                     template_rpr = a.rpr
                     break
@@ -973,6 +994,7 @@ def apply_revisions(part: Part, new_texts, author, date, ids, stats, caps_styles
         pending_inserts = []
 
     first_anchor = None
+    precedent = None
     for kind, i, j in plan:
         if kind == "insert":
             pending_inserts.append(new_texts[j])
@@ -982,7 +1004,8 @@ def apply_revisions(part: Part, new_texts, author, date, ids, stats, caps_styles
         if first_anchor is None:
             first_anchor = p
         if pending_inserts:
-            flush_inserts(p, "before")
+            flush_inserts(p, "before", precedent=precedent)
+        precedent = p
 
         if kind == "keep":
             continue
