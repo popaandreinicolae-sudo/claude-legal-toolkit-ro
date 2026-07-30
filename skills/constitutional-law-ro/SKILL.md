@@ -36,6 +36,28 @@ Controlul constitutionalitatii partidelor politice, art. 146 lit. k.
 
 Controlul constitutionalitatii tratatelor internationale, art. 146 lit. b.
 
+### Doua acte diferite, doi destinatari diferiti
+
+La controlul a posteriori se redacteaza doua acte distincte. Confundarea lor e o eroare
+de fond, semnalata de autor pe 30 iulie 2026 pe o excepție care ieșise cu antet catre
+instanta si cu un capat de cerere adresat judecatorului.
+
+**Excepția de neconstituționalitate** se adreseaza Curții Constituționale. Antetul merge
+catre CURTEA CONSTITUȚIONALĂ A ROMÂNIEI, in atentia Presedintelui, cu indicarea dosarului
+si a instantei in care s-a ridicat. Petitul cere admiterea excepției si constatarea
+neconstituționalității, cu delimitarea intinderii. Aici sta motivarea de fond, plus
+capitolul de admisibilitate, fiindca Curtea verifica ea insasi conditiile din art. 29
+alin. (1) si (3) din Legea nr. 47/1992.
+
+**Cererea de sesizare a Curții** se depune la instanta in fata careia s-a ridicat
+excepția. Ea cere instantei sa constate indeplinite conditiile de sesizare si sa dispuna
+inaintarea excepției, prin incheierea prevazuta de art. 29 alin. (4). Motivarea de fond nu
+se rescrie aici, se face trimitere la excepția anexata.
+
+Ce nu are ce cauta in excepție: antet catre instanta, cererea ca judecatorul sa sesizeze
+Curtea, cererea ca judecatorul sa constate indeplinite conditiile de sesizare. Toate trei
+aparțin cererii de sesizare.
+
 ## Testul de proportionalitate art. 53, cele 6 cerinte cumulative
 
 1. Legalitatea. Restrangerea se face numai prin lege, lege organica pentru drepturile din Titlul II.
