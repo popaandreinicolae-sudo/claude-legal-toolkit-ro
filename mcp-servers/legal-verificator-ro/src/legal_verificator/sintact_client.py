@@ -20,6 +20,13 @@ FILTRAREA SE FACE SERVER-SIDE (corectie 2026-07-27):
   Legea 295/2004). Semnalul real de categorie este `documentProductionType`
   (COURT_JURISPRUDENCE / CNSC_JURISPRUDENCE / COMMON_ACT / MONOGRAPH_FRAGMENT).
 
+FORMA INTEROGARII CONTEAZA (corectie 2026-07-30):
+  `queryString` se potriveste conjunctiv si tine cont de vecinatatea cuvintelor, deci
+  nu se comporta ca o cautare de tip motor web. Fiecare termen in plus restrange, iar
+  citarile trebuie scrise oficial, cu "nr." intre denumirea actului si numar. De aceea
+  `search` normalizeaza singura interogarea si coboara trepte de rezerva cand nu
+  gaseste nimic; detaliile si masuratoarea stau la `insereaza_nr`.
+
 Fatetele de jurisprudenta (instanta, tip hotarare, solutie, sediu, obiect, domeniu)
 se trimit ca liste de identificatori numerici `nrs`, nu ca etichete text; etichetele
 sunt respinse cu raspuns gol. Identificatorii se citesc din narrowings, de aceea
@@ -31,6 +38,7 @@ import re
 import unicodedata
 from datetime import date
 from html import unescape
+from itertools import zip_longest
 
 from bs4 import BeautifulSoup
 
@@ -99,6 +107,114 @@ def _norm(s: str) -> str:
     Utilizatorul scrie 'Curtea de Apel', fateta poate contine alta grafie, iar
     potrivirea nu trebuie sa depinda de asta."""
     return re.sub(r"\s+", " ", fold_diacritics(s).strip())
+
+
+# ── Forma citarilor in queryString ────────────────────────────────────────────
+
+# Sintact potriveste `queryString` conjunctiv si tine cont de vecinatatea cuvintelor,
+# deci fiecare termen in plus e un filtru dur, nu un indiciu de relevanta. Corpusul
+# scrie citarile in forma oficiala, cu "nr." intre denumirea actului si numar, atat in
+# textul actelor cat si in titlurile care trimit la alt act ("Norme metodologice de
+# aplicare a Legii nr. 295/2004"). O interogare fara "nr." rupe vecinatatea si pierde
+# tocmai actele conexe, cele pe care le cauti cel mai des.
+#
+# Masurat pe 30 iulie 2026, categoria legislatie:
+#   "Legea 295/2004 privind regimul armelor"      ->    5 rezultate
+#   "Legea nr. 295/2004 privind regimul armelor"  ->  228 rezultate
+# Actul propriu-zis ramane pe primul loc in ambele, desi titlul lui din Sintact nu
+# contine "nr.", deci inserarea castiga acoperire fara sa piarda tinta.
+#
+# Diacriticele nu conteaza, serverul le pliaza singur: aceeasi fraza scrisa cu si fara
+# a intors acelasi numar de rezultate. Cazul care a demascat problema, tot atunci:
+# normele metodologice ale Legii nr. 295/2004 pareau sa lipseasca din Sintact, desi
+# existau, fiindca interogarile erau scrise fara "nr." si cu termeni in plus.
+
+_DENUMIRI_ACT = (
+    "legea", "legii", "lege",
+    "hotararea", "hotararii", "hotarare", "hg",
+    "ordonanta de urgenta", "ordonantei de urgenta", "oug",
+    "ordonanta", "ordonantei", "og",
+    "ordinul", "ordinului", "ordin",
+    "decretul", "decretului", "decret",
+    "regulamentul", "regulamentului",
+    "directiva", "directivei",
+)
+
+_RX_CITARE = re.compile(
+    r"\b(" + "|".join(re.escape(d).replace(r"\ ", r"\s+")
+                      for d in sorted(_DENUMIRI_ACT, key=len, reverse=True)) + r")"
+    r"\s+(?:nr\.?\s*)?(\d+)\s*/\s*(\d{4})\b",
+    re.IGNORECASE,
+)
+
+
+def insereaza_nr(query: str) -> str:
+    """Rescrie citarile din interogare in forma oficiala, cu "nr." intre denumirea
+    actului si numar.
+
+    Potrivirea ruleaza pe textul pliat fara diacritice, ca sa prinda deopotriva
+    "Hotararea" si "Hotărârea", iar taierea se face in sirul ORIGINAL, la aceleasi
+    offseturi, fiindca fold_diacritics pastreaza lungimea caracter cu caracter.
+    Operatia e idempotenta: o citare care are deja "nr." iese neschimbata."""
+    original = query or ""
+    pliat = fold_diacritics(original)
+    bucati, ultim = [], 0
+    for m in _RX_CITARE.finditer(pliat):
+        denumire = original[m.start(1):m.end(1)]
+        bucati.append(original[ultim:m.start()])
+        bucati.append(f"{denumire} nr. {m.group(2)}/{m.group(3)}")
+        ultim = m.end()
+    bucati.append(original[ultim:])
+    return "".join(bucati)
+
+
+def scoate_nr(query: str) -> str:
+    """Perechea lui insereaza_nr: citarile fara "nr.", ca in titlul propriu al actului.
+
+    Sintact scrie actul insusi "Legea 295/2004 privind regimul armelor", dar il
+    pomeneste "Legea nr. 295/2004" in textul si in titlurile actelor care trimit la
+    el. Cele doua forme aduc seturi diferite, asa ca `search` le cauta pe amandoua."""
+    original = query or ""
+    pliat = fold_diacritics(original)
+    bucati, ultim = [], 0
+    for m in _RX_CITARE.finditer(pliat):
+        denumire = original[m.start(1):m.end(1)]
+        bucati.append(original[ultim:m.start()])
+        bucati.append(f"{denumire} {m.group(2)}/{m.group(3)}")
+        ultim = m.end()
+    bucati.append(original[ultim:])
+    return "".join(bucati)
+
+
+def contine_citare(query: str) -> bool:
+    """Interogarea numeste un act prin tip, numar si an."""
+    return bool(_RX_CITARE.search(fold_diacritics(query or "")))
+
+
+def _intercaleaza(liste):
+    """Round-robin peste rezultatele mai multor forme de interogare, deduplicat dupa
+    (nro, versionId). Intercalarea conteaza: la o taiere pe max_results, o simpla
+    concatenare ar arunca afara tocmai primele potriviri ale formei a doua."""
+    iesire, vazute = [], set()
+    for rand in zip_longest(*liste):
+        for doc in rand:
+            if doc is None:
+                continue
+            cheie = (doc.get("nro"), doc.get("versionId"))
+            if cheie in vazute:
+                continue
+            vazute.add(cheie)
+            iesire.append(doc)
+    return iesire
+
+
+def _trepte_scurtare(query: str, minim: int = 4):
+    """Interogari tot mai scurte, taiate de la coada. Termenii se cumuleaza la
+    Sintact, deci o coada de cuvinte care nu apar literal in document duce
+    rezultatul la zero, oricat de potrivite ar fi primele cuvinte."""
+    cuvinte = query.split()
+    for taiat in range(1, max(len(cuvinte) - minim, 0) + 1):
+        yield " ".join(cuvinte[:len(cuvinte) - taiat])
 
 
 def _doc_url(nro: int, version_id: int, category: str = "") -> str:
@@ -192,32 +308,91 @@ def _search_body(query: str, category: str = None, max_results: int = 10,
 
 async def search(session: SintactSession, query: str, category: str = None,
                   max_results: int = 10, start_from: int = 0,
-                  sort_by_date: bool = False) -> dict:
+                  sort_by_date: bool = False, try_direct_hit: bool = True) -> dict:
     """Cautare full-text pe sintact.ro prin API-ul intern, sesiune autentificata.
 
     `category` (legislatie / jurisprudenta / doctrina) se aplica SERVER-SIDE prin
-    documentMainType, deci nu mai pierde rezultate din cauza paginarii."""
+    documentMainType, deci nu mai pierde rezultate din cauza paginarii.
+
+    Cand interogarea contine o citare, se cauta AMANDOUA formele, cu "nr." si fara,
+    iar rezultatele se unesc intercalat si deduplicat. Cele doua aduc seturi diferite:
+    forma fara "nr." prinde titlul propriu al actului, cea cu "nr." prinde normele de
+    aplicare, legile de modificare si restul familiei. Alegerea uneia singure pierde
+    tacut jumatate din raspuns, ceea ce s-a si intamplat pe 30 iulie 2026 cu normele
+    metodologice ale Legii nr. 295/2004.
+
+    Daca niciuna nu intoarce nimic, se coboara treptele de rezerva, interogari tot mai
+    scurte, apoi direct hit pe citare. Raspunsul spune in `variante_cautate` ce forme
+    au fost interogate si cate rezultate a dat fiecare.
+
+    La paginare peste prima pagina se cauta o singura forma, cea cu "nr.", fiindca
+    offseturile a doua cautari unite nu ar mai insemna nimic.
+
+    `try_direct_hit=False` opreste ultima treapta, pentru apelantii care au incercat
+    deja direct hit si au cazut in cautare, cum face verify_citation."""
     if not await session.ensure_authenticated():
         return {"results": [], "total": 0, "source": "sintact.ro",
                 "error": "Autentificare sintact.ro esuata. Verifica SINTACT_EMAIL/SINTACT_PASSWORD in .env."}
 
-    body = _search_body(query, category, max_results, start_from, sort_by_date)
+    cu_nr = insereaza_nr(query)
+    fara_nr = scoate_nr(query)
+    forme = [cu_nr] if (start_from or fara_nr == cu_nr) else [cu_nr, fara_nr]
+
+    async def _cauta(q):
+        body = _search_body(q, category, max_results, start_from, sort_by_date)
+        data = await session.post_json(SEARCH_URL, body) or {}
+        return [_map_doc(d) for d in (data.get("documentList") or [])], data
+
+    masurat, seturi, ultima = [], [], {}
     try:
-        data = await session.post_json(SEARCH_URL, body)
+        for forma in forme:
+            docs, data = await _cauta(forma)
+            masurat.append({"query": forma, "total_available": data.get("availableHitCount"),
+                            "returned": len(docs)})
+            seturi.append(docs)
+            if data:
+                ultima = data
+
+        unite = _intercaleaza(seturi)
+
+        # Nimic pe formele citarii: coboara treptele, taind de la coada.
+        if not unite:
+            for scurta in _trepte_scurtare(cu_nr):
+                docs, data = await _cauta(scurta)
+                masurat.append({"query": scurta, "total_available": data.get("availableHitCount"),
+                                "returned": len(docs)})
+                if docs:
+                    unite, ultima = docs, data
+                    break
     except Exception as e:
         logger.error("sintact search error: %s", e)
         return {"results": [], "total": 0, "source": "sintact.ro", "error": str(e)}
 
-    docs = [_map_doc(d) for d in (data.get("documentList") or [])]
-    return {
-        "results": docs[:max_results],
-        "returned": len(docs[:max_results]),
-        "total_available": data.get("availableHitCount"),
-        "jurisprudence_available": data.get("jurisprudenceCount"),
+    totaluri = [m["total_available"] for m in masurat if m["total_available"]]
+    raspuns = {
+        "results": unite[:max_results],
+        "returned": len(unite[:max_results]),
+        "total_available": max(totaluri) if totaluri else ultima.get("availableHitCount"),
+        "jurisprudence_available": ultima.get("jurisprudenceCount"),
         "start_from": start_from,
         "category": category or "toate",
         "source": "sintact.ro",
     }
+    if len(masurat) > 1 or (masurat and masurat[0]["query"] != query):
+        raspuns["query_received"] = query
+        raspuns["variante_cautate"] = masurat
+    if len(unite) > max_results:
+        raspuns["note"] = (f"Formele interogarii au dat impreuna {len(unite)} rezultate unice, "
+                           f"taiate la max_results={max_results}. Creste max_results sau pagineaza.")
+
+    if not unite and try_direct_hit and contine_citare(query):
+        direct = await _direct_hit_result(session, cu_nr)
+        if direct:
+            raspuns["results"] = [direct]
+            raspuns["returned"] = 1
+            raspuns["note"] = ("Cautarea full-text nu a intors nimic pe nicio forma a interogarii; "
+                               "actul de mai jos vine din direct hit pe citare.")
+    return raspuns
 
 
 # ── Fatete de jurisprudenta ───────────────────────────────────────────────────
@@ -485,6 +660,30 @@ async def fetch_ccr_text(session: SintactSession, number, year) -> dict:
     return doc
 
 
+async def _direct_hit(session: SintactSession, query: str) -> dict:
+    """Endpointul pe care bara de cautare Sintact il foloseste pentru citari exacte.
+    Intoarce nro/versionId doar cand citarea se potriveste unui document real."""
+    return await session.post_json(
+        DIRECT_HIT_URL, {"queryString": query, "pointInTime": _point_in_time()}) or {}
+
+
+async def _direct_hit_result(session: SintactSession, query: str):
+    """Direct hit transformat intr-un rand de rezultat de cautare, pentru cazul in
+    care cautarea full-text nu intoarce nimic desi actul citat exista."""
+    try:
+        data = await _direct_hit(session, query)
+    except Exception as e:
+        logger.error("sintact direct-hit error: %s", e)
+        return None
+    nro, version_id = data.get("nro"), data.get("versionId")
+    if not nro or not version_id:
+        return None
+    doc = await fetch_document(session, nro, version_id, max_chars=1)
+    return {"title": doc.get("title", ""), "nro": nro, "versionId": version_id,
+            "url": doc.get("url") or _doc_url(nro, version_id),
+            "category": doc.get("category", "legislatie"), "via": "direct_hit"}
+
+
 async def verify_citation(session: SintactSession, query: str) -> dict:
     """Verifica daca o citare (lege, decizie, articol) e REALA pe sintact.ro, prin
     API-ul de 'direct hit' pe care platforma il foloseste pentru cautari exacte de
@@ -495,8 +694,7 @@ async def verify_citation(session: SintactSession, query: str) -> dict:
                 "error": "Autentificare sintact.ro esuata. Verifica SINTACT_EMAIL/SINTACT_PASSWORD in .env."}
 
     try:
-        data = await session.post_json(DIRECT_HIT_URL,
-                                       {"queryString": query, "pointInTime": _point_in_time()})
+        data = await _direct_hit(session, query)
     except Exception as e:
         logger.error("sintact direct-hit error: %s", e)
         return {"status": "EROARE", "source": "sintact.ro", "error": str(e)}
@@ -506,7 +704,8 @@ async def verify_citation(session: SintactSession, query: str) -> dict:
     if not nro or not version_id:
         # Fallback: cautare full-text, verifica daca primul rezultat e o potrivire
         # exacta de titlu (unele decizii/coduri nu au "direct hit" desi exista).
-        fallback = await search(session, query, max_results=5)
+        # `try_direct_hit=False` fiindca direct hit tocmai a fost incercat aici.
+        fallback = await search(session, query, max_results=5, try_direct_hit=False)
         for r in fallback.get("results", []):
             if query.strip().lower() in r["title"].lower():
                 return {"status": "CONFIRMAT", "title": r["title"], "url": r["url"],

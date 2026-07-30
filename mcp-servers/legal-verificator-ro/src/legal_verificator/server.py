@@ -252,7 +252,7 @@ async def list_tools():
         ),
         types.Tool(
             name="sintact_verify_citation",
-            description="PRIORITAR pentru verificare citari. Verifica pe sintact.ro (Wolters Kluwer) daca o lege, decizie (CCR/ICCJ/CEDO) sau articol citat CHIAR EXISTA. Foloseste 'direct hit', acelasi mecanism ca bara de cautare sintact, apoi fallback pe cautare full-text. Raspunde CONFIRMAT (cu titlu, url, status validitate) sau NEGASIT.",
+            description="PRIORITAR pentru verificare citari, si PRIMA OPTIUNE cand stii tipul, numarul si anul actului. Verifica pe sintact.ro (Wolters Kluwer) daca o lege, decizie (CCR/ICCJ/CEDO) sau articol citat CHIAR EXISTA. Foloseste 'direct hit', acelasi mecanism ca bara de cautare sintact, apoi fallback pe cautare full-text. Raspunde CONFIRMAT (cu titlu, url, status validitate) sau NEGASIT. Cand cauti un act pe care il poti numi ('HG 11/2018'), vino aici, nu la sintact_search: un apel il gaseste, in timp ce o fraza lunga data cautarii full-text poate intoarce zero.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -264,15 +264,26 @@ async def list_tools():
         types.Tool(
             name="sintact_search",
             description="Cautare full-text pe sintact.ro (Wolters Kluwer, cont abonat): legislatie, "
-                        "jurisprudenta, doctrina. Filtrarea pe categorie se face server-side, deci "
-                        "'jurisprudenta' acopera INCLUSIV hotararile instantelor nationale "
-                        "(judecatorii, tribunale, curti de apel), nu doar ce apare in Monitorul Oficial. "
-                        "Pentru o cercetare de jurisprudenta cu filtre pe instanta sau solutie, "
-                        "foloseste sintact_search_jurisprudence.",
+                        "jurisprudenta, doctrina. Pentru CONCEPTE si teme, nu pentru acte pe care le poti "
+                        "numi; un act stiut dupa tip, numar si an se cauta cu sintact_verify_citation. "
+                        "MOTORUL NU E DE TIP GOOGLE: termenii se cumuleaza si conteaza vecinatatea lor, "
+                        "deci fiecare cuvant in plus restrange rezultatul, iar o fraza lunga scrisa liber "
+                        "ajunge frecvent la zero. Scrie interogari scurte, in formularea oficiala, si "
+                        "citarile cu 'nr.' ('Legea nr. 295/2004', nu 'Legea 295/2004'), fiindca asa apar "
+                        "in titlurile si in textele actelor conexe. Cand interogarea contine o citare, "
+                        "tool-ul cauta SINGUR amandoua formele, cu 'nr.' si fara, si uneste rezultatele: "
+                        "forma fara 'nr.' prinde titlul propriu al actului, cea cu 'nr.' prinde normele de "
+                        "aplicare si legile de modificare. Daca nicio forma nu gaseste nimic, reincearca pe "
+                        "interogari mai scurte, apoi pe direct hit; 'variante_cautate' arata ce a interogat "
+                        "efectiv si cate rezultate a dat fiecare forma. "
+                        "Filtrarea pe categorie se face server-side, deci 'jurisprudenta' acopera INCLUSIV "
+                        "hotararile instantelor nationale (judecatorii, tribunale, curti de apel), nu doar "
+                        "ce apare in Monitorul Oficial. Pentru o cercetare de jurisprudenta cu filtre pe "
+                        "instanta sau solutie, foloseste sintact_search_jurisprudence.",
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "query": {"type": "string", "description": "Termeni de cautare"},
+                    "query": {"type": "string", "description": "Termeni de cautare, putini si in formularea oficiala. Citarile se scriu cu 'nr.'."},
                     "category": {"type": "string", "enum": ["legislatie", "jurisprudenta", "doctrina"], "description": "Fondul documentar cautat (optional; se aplica server-side)"},
                     "max_results": {"type": "integer", "description": "Numar maxim de rezultate (default 10, maximum 100)", "default": 10},
                     "start_from": {"type": "integer", "description": "Offset pentru paginare (default 0)", "default": 0},
