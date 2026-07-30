@@ -57,14 +57,36 @@ CANONIC = {
     "http://schemas.openxmlformats.org/wordprocessingml/2006/main": "w",
 }
 
+# Prefixe pe care Word le cere scrise exact asa, nu doar declarate. In docProps/core.xml
+# citeste datele dupa numele calificat dcterms:created, iar un ns2:created echivalent din
+# punct de vedere XML il face sa refuze pachetul. Defectul a supravietuit reparatiei din
+# 29 iulie 2026 fiindca verificarea se uita doar in word/, si a lovit fiecare document
+# generat: Word le deschidea numai dupa promptul de reparare.
+PREFIX_IMPUS = {
+    "http://purl.org/dc/terms/": "dcterms",
+    "http://purl.org/dc/elements/1.1/": "dc",
+    "http://purl.org/dc/dcmitype/": "dcmitype",
+    "http://schemas.openxmlformats.org/package/2006/metadata/core-properties": "cp",
+}
+
+# Atribute a caror VALOARE pomeneste prefixe. Un prefix nedeclarat scris acolo nu e prins
+# de niciun parser, fiindca nu face parte din numele elementului sau al atributului.
+ATRIBUTE_CU_PREFIXE = (
+    ("Ignorable", "lista"), ("MustUnderstand", "lista"), ("ProcessContent", "lista"),
+    ("PreserveElements", "lista"), ("PreserveAttributes", "lista"), ("type", "qname"),
+)
+
 
 def _radacina(xml: str):
-    """Intoarce (start, sfarsit, textul) elementului radacina cu prefix w."""
-    i = xml.find("<w:")
-    if i < 0:
-        return None, None, None
-    j = xml.find(">", i) + 1
-    return i, j, xml[i:j]
+    """Intoarce (start, sfarsit, textul) elementului radacina, oricare ar fi prefixul lui."""
+    m = re.search(r"<([A-Za-z_][\w.-]*:)?[A-Za-z_][\w.-]*(\s[^>]*)?/?>", xml)
+    if not m or xml[m.start():m.start() + 2] in ("<?", "<!"):
+        i = xml.find("<w:")
+        if i < 0:
+            return None, None, None
+        j = xml.find(">", i) + 1
+        return i, j, xml[i:j]
+    return m.start(), m.end(), m.group(0)
 
 
 def _declaratii(fragment: str) -> dict:
@@ -72,7 +94,14 @@ def _declaratii(fragment: str) -> dict:
 
 
 def _parti_xml(z: zipfile.ZipFile):
-    return [n for n in z.namelist() if n.startswith("word/") and n.endswith(".xml")]
+    """Toate partile XML ale pachetului, nu doar cele din word/.
+
+    Pana pe 30 iulie 2026 aici scria `n.startswith("word/")`, iar docProps/core.xml ramanea
+    in afara verificarii. Acolo statea insa defectul care il facea pe Word sa ceara
+    reparare la fiecare document generat.
+    """
+    return [n for n in z.namelist()
+            if n.endswith(".xml") and not n.startswith("customXml/")]
 
 
 def _dictionar_uri(z: zipfile.ZipFile) -> dict:
@@ -98,13 +127,17 @@ def verifica(cale) -> list:
             if not root:
                 continue
             ns = _declaratii(root)
-            ign = re.search(r'([A-Za-z0-9_]+):Ignorable="([^"]*)"', root)
-            if ign:
-                lipsa = [p for p in ign.group(2).split() if p not in ns]
-                if lipsa:
-                    probleme.append(
-                        "%s: Ignorable enumera prefixe nedeclarate: %s"
-                        % (parte, " ".join(lipsa)))
+            for nume, fel in ATRIBUTE_CU_PREFIXE:
+                for m in re.finditer(r'[A-Za-z0-9_]+:%s="([^"]*)"' % nume, xml):
+                    val = m.group(1)
+                    bucati = val.split() if fel == "lista" else [val.split(":", 1)[0]]
+                    if fel == "qname" and ":" not in val:
+                        continue
+                    lipsa = [p for p in bucati if p and p not in _declaratii(xml)]
+                    if lipsa:
+                        probleme.append(
+                            "%s: %s=%r pomeneste prefixe nedeclarate: %s"
+                            % (parte, nume, val, " ".join(sorted(set(lipsa)))))
             # prefixe folosite in corp fara declaratie in domeniu
             declarate = set(_declaratii(xml)) | {"xml", "xmlns"}
             folosite = (set(re.findall(r"</?([A-Za-z0-9_]+):", xml))
@@ -113,6 +146,12 @@ def verifica(cale) -> list:
             if nedeclarate:
                 probleme.append("%s: prefixe folosite fara declaratie: %s"
                                 % (parte, " ".join(nedeclarate)))
+            # prefixe pe care Word le cere scrise exact asa, nu doar declarate
+            for uri, dorit in PREFIX_IMPUS.items():
+                actual = next((p for p, u in ns.items() if u == uri), None)
+                if actual and actual != dorit:
+                    probleme.append("%s: prefixul pentru %s e %r, Word il cere scris %r"
+                                    % (parte, uri, actual, dorit))
     return probleme
 
 
@@ -133,6 +172,24 @@ def repara(cale, iesire=None, backup: bool = True) -> list:
             if not root:
                 continue
             ns = _declaratii(root)
+
+            # Prefixele impuse se rescriu intai, ca declaratia si numele calificate sa
+            # ramana potrivite intre ele.
+            impuse = {p: PREFIX_IMPUS[u] for p, u in ns.items()
+                      if u in PREFIX_IMPUS and PREFIX_IMPUS[u] != p}
+            if impuse:
+                nou = xml
+                for vechi, dorit in impuse.items():
+                    nou = nou.replace('xmlns:%s="' % vechi, 'xmlns:%s="' % dorit)
+                    nou = re.sub(r"(</?)%s:" % re.escape(vechi), r"\g<1>%s:" % dorit, nou)
+                    nou = re.sub(r"(\s)%s:" % re.escape(vechi), r"\g<1>%s:" % dorit, nou)
+                modificate[parte] = nou
+                facute.append("%s: prefix rescris %s" % (
+                    parte, " ".join("%s>%s" % kv for kv in impuse.items())))
+                xml = nou
+                i, j, root = _radacina(xml)
+                ns = _declaratii(root)
+
             ign = re.search(r'([A-Za-z0-9_]+):Ignorable="([^"]*)"', root)
             if not ign:
                 continue
