@@ -28,6 +28,7 @@ $Dest = Join-Path $env:USERPROFILE '.claude'
 $Skills = @(
     'anti-ai-tone'
     'anti-hallucination-document'
+    'asociatii-ro'
     'anti-hallucination-energetic'
     'constitutional-law-ro'
     'cyber-law-ro'
