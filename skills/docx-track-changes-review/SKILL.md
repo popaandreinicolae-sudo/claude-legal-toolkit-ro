@@ -145,7 +145,13 @@ Analiza de fond: [ce vrei revizuit, ex. conformitate cu Legea X, coerenta citari
 ## 7. Reguli de aur, de ce nu da eroare
 
 1. Nu regenera documentul, editeaza-l despachetat.
-2. Inlocuieste blocul `<w:r>` intreg, nu injecta tag-uri de track change in interiorul unui run.
+2. Sparge intai run-ul la limita textului schimbat, apoi inlocuieste intreg run-ul din
+   mijloc. Marcajele de revizie stau in JURUL run-ului, nu inauntrul lui: `<w:ins>` sau
+   `<w:del>` scrise in interiorul unui `<w:r>` fac documentul nedeschidabil.
+   Regula asta spune UNDE se pun marcajele. Cat text intra in ele spune regula din
+   docx-safe-edit: se taie cuvantul schimbat, nu fraza din jurul lui. Cele doua se citesc
+   impreuna, iar cine o urmeaza numai pe aceasta ajunge sa marcheze toata propozitia
+   pentru un cuvant.
 3. Pastreaza `<w:rPr>` in ambele runuri, de inserare si de stergere.
 4. In `<w:del>` folosesti `<w:delText>`, nu `<w:t>`.
 5. La stergere de paragraf intreg, marcheaza si `<w:del/>` in `<w:pPr><w:rPr>`.

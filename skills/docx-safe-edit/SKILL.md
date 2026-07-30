@@ -167,5 +167,10 @@ raport, nu trece verificarea ca facuta.
 - Nu schimba structura arhivei ZIP, nici ordinea intrarilor.
 - Nu edita cu python-docx un document cu note de subsol complexe, foloseste lxml.
 - Nu recomasa paragrafele autorului. Un citat pus in trei paragrafe ramane in trei.
-- Nu inlocui un `<w:r>` intreg pentru un cuvant schimbat. Sparge run-ul in trei, altfel
-  marcajul iese lat si pierde bold-ul termenului definit.
+- Nu marca toata fraza pentru un cuvant schimbat. Sparge run-ul in trei, textul dinainte,
+  cuvantul schimbat si textul de dupa, si marcheaza numai bucata din mijloc. Altfel
+  autorul vede in Word propozitia intreaga taiata si rescrisa pentru un cuvant, iar
+  bold-ul termenilor definiti se pierde.
+  Regula asta spune CAT text intra in marcaj. Unde se pun marcajele spune regula 2 din
+  docx-track-changes-review: in jurul run-ului din mijloc, niciodata inauntrul lui. Cele
+  doua se completeaza; spargi run-ul, apoi inlocuiesti intreg run-ul din mijloc.
