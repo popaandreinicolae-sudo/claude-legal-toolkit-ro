@@ -72,6 +72,14 @@ NUM_FARA = 0
 # hanging=360, iar numarul se aseaza cu 1,27 cm mai la dreapta decat in actele proprii.
 INDENT_CORP = (0, 720)
 
+# Blocurile pe stilul simplu, adresarea, identificarea partilor, obiectul si finalul, se
+# aliniaza la marginea din stanga, ca textul de corp. Stilul `Normal` poarta left=504, iar
+# sablonul are aceeasi valoare ca implicit al documentului, deci un paragraf fara `w:ind`
+# iese cu 0,89 cm mai la dreapta decat corpul. In actele proprii fiecare paragraf pe
+# `Normal` scrie explicit left=0; masurat pe cererea de camera preliminara Transcarpat,
+# fara nicio exceptie. Semnalat de autor pe 30 iulie 2026.
+INDENT_SIMPLU = 0
+
 # Spatierea din jurul titlurilor, in twips. Valorile sunt cele dominante in actele
 # proprii: `w:before="160"` apare de 88 de ori in cererea de camera preliminara
 # Transcarpat, iar `w:after="100"` de 154 de ori.
@@ -139,6 +147,15 @@ def _spatiere(paragraf, inainte: int, dupa: int, centrat: bool = False):
         jc = OxmlElement("w:jc")
         jc.set(qn("w:val"), "center")
         _pune_in_pPr(ppr, jc, "jc")
+
+
+def _aliniaza_la_margine(paragraf):
+    """Scrie `w:ind w:left=0` pe paragraf, ca textul sa porneasca de la marginea din
+    stanga, aliniat cu corpul actului. Vezi INDENT_SIMPLU pentru de ce nu ajunge stilul."""
+    ppr = paragraf._p.get_or_add_pPr()
+    ind = OxmlElement("w:ind")
+    ind.set(qn("w:left"), str(INDENT_SIMPLU))
+    _pune_in_pPr(ppr, ind, "ind")
 
 
 def _fara_spatiu_in_capul_paginii(doc):
@@ -268,6 +285,8 @@ def _bloc(doc, elemente, stil, *, bold_implicit=False, num_id=None):
             # interiorul paragrafului si isi pastreaza retragerea din definitia fluxului.
             _numerotare(p, numerotare,
                         indentare=INDENT_CORP if numerotare == NUM_CORP else None)
+        elif stil_efectiv == STIL_SIMPLU:
+            _aliniaza_la_margine(p)
         yield p
 
 
