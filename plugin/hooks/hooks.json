@@ -43,6 +43,16 @@
             "timeout": 12
           }
         ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/ruleaza.sh\" arhiveaza_hook.py",
+            "timeout": 15
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
