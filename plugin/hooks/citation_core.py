@@ -32,7 +32,19 @@ _CACHE_TTL = 7 * 24 * 3600
 
 # ---------------------------------------------------------------- regex
 
-_ACT_WORD = r"(Legea|Lege|O\.?U\.?G\.?|Ordonanta de urgenta|O\.?G\.?|Ordonanta|H\.?G\.?|Hotararea Guvernului|Hotararea|Ordinul|Ordin|Codul)"
+# Formele scrise in litere si cu diacritice sunt cele care ajung in acte, iar tabelul de
+# mai jos le rata pana pe 30 iulie 2026: "Hotararea Guvernului nr. 130/2005" era prinsa,
+# dar "Hotărârea Guvernului nr. 11/2018" nu, fiindca alternativele erau scrise fara
+# diacritice. La fel, "Ordonanța de urgență a Guvernului nr. 158/1999", forma completa de
+# citare, trecea nesemnalata. Ordinea alternativelor conteaza: cele lungi stau inaintea
+# celor scurte, altfel "Ordonanta" ar inghiti "Ordonanta de urgenta".
+_ACT_WORD = (
+    r"(Legea|Lege"
+    r"|O\.?U\.?G\.?|Ordonan[tțţ]a\s+de\s+urgen[tțţ][aă](?:\s+a\s+Guvernului)?"
+    r"|Ordonan[tțţ]a\s+Guvernului|O\.?G\.?|Ordonan[tțţ]a"
+    r"|H\.?G\.?|Hot[aă]r[aâ]rea\s+Guvernului|Hot[aă]r[aâ]rea"
+    r"|Ordinul|Ordin|Codul)"
+)
 _NUM_YEAR = r"(\d{1,4})\s*[\/]\s*(\d{4})"
 
 # Permite un token de instanta intre "Decizia" si numar (ICCJ, CCR, nr., a Curtii...).
@@ -70,8 +82,21 @@ _ACT_TYPE_MAP = {
 }
 
 
+# Diacriticele si spatiile multiple cad inainte de cautarea in tabel, ca o singura
+# intrare sa acopere toate formele scrise ale aceluiasi tip de act. Se scot si sedilele
+# vechi, ş si ţ, fiindca documentele mai vechi si unele baze le folosesc inca.
+_FARA_DIACRITICE = str.maketrans({
+    "ă": "a", "â": "a", "î": "i", "ș": "s", "ş": "s", "ț": "t", "ţ": "t",
+    "Ă": "A", "Â": "A", "Î": "I", "Ș": "S", "Ş": "S", "Ț": "T", "Ţ": "T",
+})
+
+
 def _norm_act(word: str) -> str:
-    return _ACT_TYPE_MAP.get(word.strip().lower().replace(" ", " "), word.strip().lower())
+    plat = re.sub(r"\s+", " ", word.strip().translate(_FARA_DIACRITICE)).lower()
+    # "ordonanta de urgenta a guvernului" si "ordonanta de urgenta" sunt acelasi act.
+    plat = plat.replace("ordonanta de urgenta a guvernului", "ordonanta de urgenta")
+    plat = plat.replace("ordonanta guvernului", "ordonanta")
+    return _ACT_TYPE_MAP.get(plat, plat)
 
 
 def extract_citations(text: str) -> list:

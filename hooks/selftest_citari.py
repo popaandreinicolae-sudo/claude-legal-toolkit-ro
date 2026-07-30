@@ -58,6 +58,15 @@ CAZURI = [
     ("OUG nr. 158/1999 privind regimul de control", "act", "158", "1999"),
     ("Legea nr. 47/1992 privind Curtea Constitutionala", "act", "47", "1992"),
     ("Legea nr. 286/2009 privind Codul penal", "act", "286", "2009"),
+    # Formele scrise in litere si cu diacritice, cele care ajung efectiv in acte.
+    # Pana pe 30 iulie 2026 stratul le rata, desi prindea abrevierile.
+    ("Hotararea Guvernului nr. 130/2005", "act", "130", "2005"),
+    ("Hotărârea Guvernului nr. 11/2018", "act", "11", "2018"),
+    ("H.G. nr. 11/2018 pentru aprobarea normelor", "act", "11", "2018"),
+    ("Ordonanța de urgență a Guvernului nr. 158/1999", "act", "158", "1999"),
+    ("Ordonanţa de urgenţă a Guvernului nr. 158/1999", "act", "158", "1999"),
+    ("Ordonanța Guvernului nr. 2/2001 privind contraventiile", "act", "2", "2001"),
+    ("Legea nr. 266/2022 pentru modificarea Legii nr. 232/2016", "act", "266", "2022"),
     # Directive, toate formele flexionate.
     ("Directiva 2009/73/CE privind gazele", "eu_directive", "2009", "73"),
     ("potrivit Directivei 2009/73/CE, in vigoare", "eu_directive", "2009", "73"),

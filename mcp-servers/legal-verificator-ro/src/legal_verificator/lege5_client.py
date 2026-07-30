@@ -76,16 +76,32 @@ async def search(session: Lege5Session, query: str,
     return {"results": results, "total": len(results), "source": "lege5.ro"}
 
 
+# Fara cont, lege5 serveste forma publicata initial in Monitorul Oficial si o anunta
+# printr-un banner in corpul actului. Textul arata ca orice alt text de lege, deci
+# lipsa modificarilor ulterioare nu se vede la citire: pe 30 iulie 2026, art. 1 din
+# Legea nr. 232/2016 a venit de aici fara alin. (3), introdus in 2022.
+_BANNER_NECONSOLIDAT = "nu include posibile modificări ulterioare"
+
+
 async def fetch_document(session: Lege5Session, url: str) -> dict:
     """Descarca textul integral al unui document de pe lege5.ro."""
     await session.ensure_authenticated()
     doc = await session.goto_text(url)
-    return {
-        "text": doc.get("text", ""),
+    text = doc.get("text", "")
+    iesire = {
+        "text": text,
         "title": doc.get("title", ""),
         "url": doc.get("url", url),
         "source": "lege5.ro",
     }
+    if _BANNER_NECONSOLIDAT in text:
+        iesire["forma"] = "neconsolidata"
+        iesire["avertisment"] = (
+            "Text servit fara cont, in forma publicata initial in Monitorul Oficial, "
+            "fara modificarile ulterioare. NU citi din el forma in vigoare si nu "
+            "concluziona ca un alineat lipseste. Verifica pe sintact.ro."
+        )
+    return iesire
 
 
 async def search_ccr_decision(session: Lege5Session, number: int, year: int) -> dict:

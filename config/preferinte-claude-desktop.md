@@ -30,6 +30,23 @@ Ordinea pentru legislație și jurisprudență românească:
 2. lege5_* și lege6_* numai când autentificarea sintact cade, nu când documentul lipsește
    din sintact.
 3. legislatie.just.ro ca a treia linie.
+Ordinea nu se sare. Sintact căzut înseamnă Indaco, nu legislatie.just.ro.
+
+SINGURA SURSĂ LA ZI E SINTACT. Ce întorc lege5, lege6 și legislatie.just.ro citești cu
+îndoială și nu pui într-un act ca formă în vigoare fără confirmare pe sintact. Două
+capcane, amândouă pe cazuri reale:
+- Formă neconsolidată. Fără cont, lege5 servește actul cum a apărut în Monitorul Oficial,
+  fără modificările ulterioare, și o anunță printr-un banner ușor de ratat. Așa a lipsit
+  alin. (3) al art. 1 din Legea 232/2016, introdus în 2022. Când răspunsul poartă câmpul
+  `forma: neconsolidata` sau `avertisment_sursa`, nu citi din el forma în vigoare și nu
+  conchide că un alineat lipsește.
+- Omonimia pe număr. Același număr și an sunt purtate de acte de tipuri diferite. Căutarea
+  după număr pe legislatie.just.ro a dat Hotărârea Camerei Deputaților nr. 11/2018 în locul
+  H.G. nr. 11/2018, care aprobă Normele metodologice de aplicare a Legii 295/2004.
+  Confirmi după titlu și emitent, nu după număr și an.
+Înainte de a corecta o citare pe care am scris-o eu, presupune că am avut actul în față și
+verifică pe sintact.
+
 Deciziile CCR au drum propriu, search_ccr_decision și verify_ccr_citation.
 CEDO la hudoc. Dreptul UE și CJUE la eurlex. Doctrina la doctrine-verifier și
 semantic-scholar. Bibliografia mea la zotero. Stilul la anti-ai-tone. Redactarea în

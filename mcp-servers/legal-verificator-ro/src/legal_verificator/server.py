@@ -911,8 +911,58 @@ def _normalize_args(args: dict, name: str = "") -> dict:
     return a
 
 
+# Sursele de rezerva, cu avertismentul care pleaca odata cu fiecare raspuns al lor.
+# Instructiunea scrisa se poate pierde intr-o conversatie lunga; campul din raspuns nu.
+_SURSE_DE_REZERVA = {
+    "lege5_search": "lege5.ro (Indaco)",
+    "lege5_fetch_document": "lege5.ro (Indaco)",
+    "lege6_search": "lege6.ro (Indaco)",
+    "lege6_search_legislation": "lege6.ro (Indaco)",
+    "lege6_fetch_document": "lege6.ro (Indaco)",
+    "search_legislation": "legislatie.just.ro",
+    "fetch_article_text": "legislatie.just.ro",
+    "fetch_legal_url": "legislatie.just.ro",
+}
+
+_AVERTISMENT_REZERVA = (
+    "Sursa de rezerva, nu sintact. Textul poate fi in forma publicata initial, fara "
+    "modificarile ulterioare, iar cautarea dupa numar poate intoarce alt act cu acelasi "
+    "numar si an (verifica titlul si emitentul). Confirma pe sintact inainte de a pune "
+    "citarea intr-un act, altfel marcheaza-o [NEVERIFICAT]."
+)
+
+
+def _stampileaza_rezerva(nume: str, continut):
+    """Adauga marcajul de sursa de rezerva in corpul JSON al raspunsului."""
+    sursa = _SURSE_DE_REZERVA.get(nume)
+    if not sursa:
+        return continut
+    iesire = []
+    for bucata in continut:
+        text = getattr(bucata, "text", None)
+        if text is None:
+            iesire.append(bucata)
+            continue
+        try:
+            date = json.loads(text)
+        except (ValueError, TypeError):
+            iesire.append(bucata)
+            continue
+        if isinstance(date, dict):
+            date["sursa_de_rezerva"] = sursa
+            date["avertisment_sursa"] = _AVERTISMENT_REZERVA
+            bucata = types.TextContent(
+                type="text", text=json.dumps(date, ensure_ascii=False, indent=2))
+        iesire.append(bucata)
+    return iesire
+
+
 @app.call_tool()
 async def call_tool(name: str, arguments: dict):
+    return _stampileaza_rezerva(name, await _executa_tool(name, arguments))
+
+
+async def _executa_tool(name: str, arguments: dict):
     try:
         arguments = _normalize_args(arguments, name)
         if name in _LEGISLATION_TOOLS:
@@ -1155,10 +1205,16 @@ def main():
 
 MCP_INSTRUCTIONS = """Toolkit juridic romanesc, sursa primara pentru orice raspuns care atinge legislatie, jurisprudenta sau doctrina din Romania si din UE. Nu raspunde din memorie si nu te opri la cautarea web. Paginile publice gratuite (legislatie.just.ro, legeaz.net, universuljuridic.ro) nu arata forma consolidata la zi si nu acopera jurisprudenta instantelor nationale.
 
+SINGURA SURSA LA ZI ESTE SINTACT. Textul intors de lege5, lege6 si legislatie.just.ro se citeste cu indoiala si nu ajunge intr-un act drept forma in vigoare fara confirmare pe sintact. Doua capcane, amandoua verificate pe cazuri reale in iulie 2026:
+- FORMA NECONSOLIDATA. Fara cont, lege5 serveste actul asa cum a aparut in Monitorul Oficial, fara modificarile ulterioare, si o anunta printr-un banner usor de ratat. Asa a lipsit alin. (3) al art. 1 din Legea nr. 232/2016, introdus in 2022. Cand raspunsul poarta campul `forma: neconsolidata`, nu citi din el forma in vigoare si NU conchide ca un alineat lipseste.
+- OMONIMIA PE NUMAR. Acelasi numar si an sunt purtate de acte de tipuri diferite, iar cautarea dupa numar pe legislatie.just.ro poate intoarce alt act. H.G. nr. 11/2018, care aproba Normele metodologice de aplicare a Legii nr. 295/2004, a fost confundata acolo cu Hotararea Camerei Deputatilor nr. 11/2018. Confirma dupa TITLU si EMITENT, nu dupa numar si an.
+Inainte de a corecta o citare a utilizatorului, presupune ca el a avut actul in fata si verifica pe sintact. Ce nu s-a putut confirma pe sintact se marcheaza [NEVERIFICAT], nu se corecteaza dupa sursa de rezerva.
+
 ORDINEA SURSELOR pentru legislatie si jurisprudenta romaneasca:
 1. sintact_search, sintact_fetch_document, sintact_search_jurisprudence, sintact_verify_citation. Sintact (Wolters Kluwer, cont de abonat) se incearca INTAI, mereu.
 2. lege5_* si lege6_* (Indaco) numai cand autentificarea sintact cade, NU cand documentul lipseste din sintact.
 3. search_legislation, fetch_article_text, fetch_legal_url pentru legislatie.just.ro, ca a treia linie.
+Ordinea nu se sare. Sintact cazut inseamna Indaco, nu legislatie.just.ro.
 
 Deciziile Curtii Constitutionale au drum propriu: search_ccr_decision, search_ccr_by_subject, verify_ccr_citation, batch_verify_ccr, fetch_ccr_decision_text.
 

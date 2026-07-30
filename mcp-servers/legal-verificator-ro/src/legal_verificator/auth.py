@@ -36,6 +36,20 @@ _USER_AGENT = (
 )
 _STATE_DIR = Path(__file__).resolve().parent.parent.parent / ".session"
 
+# Valorile de sablon din configurarea MCP. load_dotenv NU suprascrie mediul primit de la
+# proces, deci un 'your-login@example.com' ramas in claude_desktop_config.json bate
+# credentialele reale din .env, iar autentificarea pica tacut, cu o parola inexistenta.
+_SABLOANE = {"your-login@example.com", "parola_ta", "password", "changeme", "email@example.com"}
+
+
+def _acreditare(*chei: str) -> str:
+    """Prima valoare reala dintre variabilele date, sarind peste sabloane."""
+    for cheie in chei:
+        val = (os.environ.get(cheie) or "").strip()
+        if val and val.lower() not in _SABLOANE:
+            return val
+    return ""
+
 # Browser partajat (lansat lazy, o singura data, pe bucla serverului).
 _playwright = None
 _browser = None
@@ -126,39 +140,87 @@ class _IndacoSession:
                 await self._save_state()
             return ok
 
+    # ---- originea paginii, conditia tacuta a oricarui fetch autentificat ----
+
+    @staticmethod
+    def _origine(url: str) -> str:
+        from urllib.parse import urlsplit
+        p = urlsplit(url or "")
+        return "%s://%s" % (p.scheme, p.netloc) if p.scheme and p.netloc else ""
+
+    async def _asigura_originea(self, page, url: str):
+        """Readuce pagina pe originea ceruta inainte de fetch.
+
+        fetch() din pagina merge cu cookie-urile ORIGINII PAGINII, nu ale adresei cerute.
+        Cand licenta cu o singura sesiune activa a fost preluata in alta parte, sintact
+        arunca pagina inapoi pe SSO-ul Wolters Kluwer, iar cererea urmatoare pleaca de pe
+        acel domeniu si moare in CORS, cu 'TypeError: Failed to fetch'. Steagul
+        _authenticated ramanea insa pe True din prima autentificare reusita, deci
+        serverul nu incerca nimic, si asa cadea sintactul intr-o sesiune lunga in timp ce
+        acelasi cont mergea perfect dintr-un proces nou.
+        """
+        tinta = self._origine(url)
+        if not tinta or self._origine(page.url) == tinta:
+            return
+        self._authenticated = False
+        await self.ensure_authenticated()
+
+    async def _cu_reautentificare(self, url: str, treaba):
+        """Ruleaza `treaba(page)`, iar la caderea fetch-ului reautentifica si mai incearca o data.
+
+        Se reia numai eroarea de transport, adica cererea care nu a ajuns la server. Un
+        raspuns 403 sau 500 ajunge intreg pana aici si nu se reia, ca sa nu ascundem
+        raspunsul real al platformei sub o reincercare.
+        """
+        page = await self._ensure_page()
+        await self._asigura_originea(page, url)
+        try:
+            return await treaba(page)
+        except Exception as e:
+            if "Failed to fetch" not in str(e) and "NetworkError" not in str(e):
+                raise
+            logger.warning("%s: fetch cazut pe %s, reautentific si reiau", self.site_name, url)
+            self._authenticated = False
+            if not await self.ensure_authenticated():
+                raise
+            page = await self._ensure_page()
+            return await treaba(page)
+
     async def fetch_json(self, url: str) -> dict:
         """Fetch autentificat din originea site-ului (executat in pagina logata)."""
-        page = await self._ensure_page()
-        txt = await page.evaluate(
-            """async (u) => {
-                const r = await fetch(u, {headers: {'Accept': 'application/json'}, credentials: 'include'});
-                return await r.text();
-            }""",
-            url,
-        )
+        async def treaba(page):
+            return await page.evaluate(
+                """async (u) => {
+                    const r = await fetch(u, {headers: {'Accept': 'application/json'}, credentials: 'include'});
+                    return await r.text();
+                }""",
+                url,
+            )
+        txt = await self._cu_reautentificare(url, treaba)
         import json
         return json.loads(txt)
 
     async def post_json(self, url: str, body: dict) -> dict:
         """POST JSON autentificat din originea site-ului (executat in pagina logata)."""
-        page = await self._ensure_page()
-        txt = await page.evaluate(
-            """async ([u, b]) => {
-                // Aplicatiile Angular ataseaza X-XSRF-TOKEN din cookie la POST-uri;
-                // fara el serverul poate respinge cererea fara mesaj de eroare.
-                const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/);
-                const headers = {'Accept': 'application/json', 'Content-Type': 'application/json'};
-                if (m) headers['X-XSRF-TOKEN'] = decodeURIComponent(m[1]);
-                const r = await fetch(u, {
-                    method: 'POST',
-                    headers,
-                    credentials: 'include',
-                    body: JSON.stringify(b),
-                });
-                return await r.text();
-            }""",
-            [url, body],
-        )
+        async def treaba(page):
+            return await page.evaluate(
+                """async ([u, b]) => {
+                    // Aplicatiile Angular ataseaza X-XSRF-TOKEN din cookie la POST-uri;
+                    // fara el serverul poate respinge cererea fara mesaj de eroare.
+                    const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/);
+                    const headers = {'Accept': 'application/json', 'Content-Type': 'application/json'};
+                    if (m) headers['X-XSRF-TOKEN'] = decodeURIComponent(m[1]);
+                    const r = await fetch(u, {
+                        method: 'POST',
+                        headers,
+                        credentials: 'include',
+                        body: JSON.stringify(b),
+                    });
+                    return await r.text();
+                }""",
+                [url, body],
+            )
+        txt = await self._cu_reautentificare(url, treaba)
         import json
         # Corp gol = "niciun rezultat" pentru API-urile de cautare (sintact intoarce
         # 200 cu body vid cand nu exista potrivire), nu o eroare de parsare.
@@ -242,8 +304,8 @@ class Lege6Session(_IndacoSession):
 
     def __init__(self):
         super().__init__()
-        self._email = os.environ.get("LEGE6_EMAIL", "") or os.environ.get("LEGE5_EMAIL", "")
-        self._password = os.environ.get("LEGE6_PASSWORD", "") or os.environ.get("LEGE5_PASSWORD", "")
+        self._email = _acreditare("LEGE6_EMAIL", "LEGE5_EMAIL")
+        self._password = _acreditare("LEGE6_PASSWORD", "LEGE5_PASSWORD")
 
     async def _is_logged_in(self, page) -> bool:
         await page.goto(f"{LEGE6_BASE}/app", timeout=45000)
@@ -297,8 +359,8 @@ class SintactSession(_IndacoSession):
 
     def __init__(self):
         super().__init__()
-        self._email = os.environ.get("SINTACT_EMAIL", "")
-        self._password = os.environ.get("SINTACT_PASSWORD", "")
+        self._email = _acreditare("SINTACT_EMAIL")
+        self._password = _acreditare("SINTACT_PASSWORD")
 
     async def _pass_session_gate(self, page) -> bool:
         """Trece de poarta de sesiune a SSO-ului Wolters Kluwer.
@@ -403,8 +465,8 @@ class Lege5Session(_IndacoSession):
 
     def __init__(self):
         super().__init__()
-        self._email = os.environ.get("LEGE5_EMAIL", "")
-        self._password = os.environ.get("LEGE5_PASSWORD", "")
+        self._email = _acreditare("LEGE5_EMAIL")
+        self._password = _acreditare("LEGE5_PASSWORD")
 
     async def _is_logged_in(self, page) -> bool:
         await page.goto(f"{LEGE5_BASE}/MyLege5", timeout=45000)
