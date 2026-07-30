@@ -23,9 +23,18 @@ sufix de versiune.
 
 Cum numeroteaza
 ---------------
-    act.docx            exista  ->  act_v2.docx
-    act_v2.docx         exista  ->  act_v3.docx
-    act_v12.docx        exista  ->  act_v13.docx
+    act.docx                     ->  act_v2.docx
+    act_v2.docx                  ->  act_v3.docx
+    act_v12.docx                 ->  act_v13.docx
+    exceptie_v2_redline_AMZ.docx ->  exceptie_v3_redline_AMZ.docx
+
+Marcajul de versiune se recunoaste oriunde in nume, nu doar la coada. Numele actelor
+poarta de obicei si o eticheta dupa versiune, "_v2_redline_AMZ", iar adaugarea unui al
+doilea marcaj la coada ar da "_v2_redline_AMZ_v2", ilizibil dupa cateva rulari.
+
+Familia unui fisier e data de ce sta in jurul marcajului. "act_v1_autor" si
+"act_v2_redline" sunt familii diferite, fiindca eticheta de dupa numar difera, deci fiecare
+isi urmeaza propriul sir.
 
 Numerotarea continua de la cea mai mare versiune gasita, nu de la prima libera, ca
 stergerea unei versiuni intermediare sa nu duca la refolosirea unui nume.
@@ -43,40 +52,48 @@ import re
 import sys
 from pathlib import Path
 
-_TIPAR_VERSIUNE = re.compile(r"^(?P<baza>.+?)_v(?P<nr>\d+)$")
+# Ultimul marcaj de versiune din nume, fie la coada, fie urmat de o eticheta.
+_TIPAR_VERSIUNE = re.compile(r"^(?P<inainte>.*)_v(?P<nr>\d+)(?P<dupa>(?:_.*)?)$")
 
 
-def _desparte(cale: Path):
-    """Intoarce (baza fara sufixul de versiune, numarul de versiune)."""
-    m = _TIPAR_VERSIUNE.match(cale.stem)
+def _desparte(stem: str):
+    """Intoarce (inainte, numar, dupa). Fara marcaj, numarul e 1 si `dupa` e gol."""
+    m = _TIPAR_VERSIUNE.match(stem)
     if m:
-        return m.group("baza"), int(m.group("nr"))
-    return cale.stem, 1
+        return m.group("inainte"), int(m.group("nr")), m.group("dupa")
+    return stem, 1, ""
+
+
+def _compune(inainte: str, nr: int, dupa: str, sufix: str) -> str:
+    return "%s_v%d%s%s" % (inainte, nr, dupa, sufix)
 
 
 def cale_libera(cale, tacut: bool = False) -> Path:
     """Prima cale care nu exista, pornind de la `cale`.
 
     Cand fisierul cerut nu exista, il intoarce neatins. Cand exista, cauta cea mai mare
-    versiune de pe disc si intoarce urmatoarea.
+    versiune din aceeasi familie si intoarce urmatoarea.
     """
     cale = Path(cale)
     if not cale.exists():
         return cale
 
-    baza, _ = _desparte(cale)
+    inainte, _, dupa = _desparte(cale.stem)
     dosar, sufix = cale.parent, cale.suffix
 
     maxim = 1
-    for vecin in dosar.glob("%s*%s" % (baza, sufix)):
-        b, nr = _desparte(vecin)
-        if b == baza:
-            maxim = max(maxim, nr)
+    for vecin in dosar.glob("*%s" % sufix):
+        i2, nr2, d2 = _desparte(vecin.stem)
+        if i2 == inainte and d2 == dupa:
+            maxim = max(maxim, nr2)
+        elif vecin.stem == inainte and not dupa:
+            maxim = max(maxim, 1)
 
-    noua = dosar / ("%s_v%d%s" % (baza, maxim + 1, sufix))
+    nr = maxim + 1
+    noua = dosar / _compune(inainte, nr, dupa, sufix)
     while noua.exists():
-        maxim += 1
-        noua = dosar / ("%s_v%d%s" % (baza, maxim + 1, sufix))
+        nr += 1
+        noua = dosar / _compune(inainte, nr, dupa, sufix)
 
     if not tacut:
         sys.stderr.write(

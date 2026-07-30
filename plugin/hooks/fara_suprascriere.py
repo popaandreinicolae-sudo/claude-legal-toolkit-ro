@@ -60,20 +60,31 @@ def _e_liber(cale: str) -> bool:
 
 
 def _urmatoarea(cale: Path) -> Path:
-    """Prima cale libera, cu sufix de versiune. Aceeasi regula ca in cale_libera.py."""
-    m = re.match(r"^(?P<baza>.+?)_v(?P<nr>\d+)$", cale.stem)
-    baza = m.group("baza") if m else cale.stem
-    maxim = int(m.group("nr")) if m else 1
-    for vecin in cale.parent.glob("%s*%s" % (baza, cale.suffix)):
-        m2 = re.match(r"^(?P<baza>.+?)_v(?P<nr>\d+)$", vecin.stem)
-        if m2 and m2.group("baza") == baza:
-            maxim = max(maxim, int(m2.group("nr")))
-        elif vecin.stem == baza:
+    """Prima cale libera. Aceeasi regula ca in cale_libera.py din skill-uri.
+
+    Marcajul de versiune se recunoaste oriunde in nume, nu doar la coada, fiindca actele
+    poarta si o eticheta dupa numar, "_v2_redline_AMZ". Un al doilea marcaj adaugat la
+    coada ar da "_v2_redline_AMZ_v2", ilizibil dupa cateva rulari.
+    """
+    tipar = re.compile(r"^(?P<inainte>.*)_v(?P<nr>\d+)(?P<dupa>(?:_.*)?)$")
+
+    def desparte(stem):
+        m = tipar.match(stem)
+        return (m.group("inainte"), int(m.group("nr")), m.group("dupa")) if m else (stem, 1, "")
+
+    inainte, _, dupa = desparte(cale.stem)
+    maxim = 1
+    for vecin in cale.parent.glob("*%s" % cale.suffix):
+        i2, nr2, d2 = desparte(vecin.stem)
+        if i2 == inainte and d2 == dupa:
+            maxim = max(maxim, nr2)
+        elif vecin.stem == inainte and not dupa:
             maxim = max(maxim, 1)
-    noua = cale.parent / ("%s_v%d%s" % (baza, maxim + 1, cale.suffix))
+    nr = maxim + 1
+    noua = cale.parent / ("%s_v%d%s%s" % (inainte, nr, dupa, cale.suffix))
     while noua.exists():
-        maxim += 1
-        noua = cale.parent / ("%s_v%d%s" % (baza, maxim + 1, cale.suffix))
+        nr += 1
+        noua = cale.parent / ("%s_v%d%s%s" % (inainte, nr, dupa, cale.suffix))
     return noua
 
 
