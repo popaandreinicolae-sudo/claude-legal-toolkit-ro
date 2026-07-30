@@ -65,6 +65,13 @@ NUM_CORP = 41
 NUM_MARCATOR = 37
 NUM_FARA = 0
 
+# Numarul de paragraf atarna in marginea din stanga, iar textul incepe chiar la margine.
+# Masurat pe actele proprii: toate cele 225 de paragrafe numerotate din cererea de camera
+# preliminara Transcarpat poarta exact `w:ind w:left="0" w:hanging="720"`, fara exceptie.
+# Fara aceste valori, Word cade pe indentarea din definitia fluxului, left=360
+# hanging=360, iar numarul se aseaza cu 1,27 cm mai la dreapta decat in actele proprii.
+INDENT_CORP = (0, 720)
+
 # python-docx cere numele stilului, nu identificatorul. Cautarea dupa id e depreciata si
 # scoate un avertisment la fiecare paragraf.
 STIL_CORP = "Body cu nr de paragraf"
@@ -79,11 +86,15 @@ STIL_SIMPLU = "Normal"
 TITLU_CULOARE = "244061"
 
 
-def _numerotare(paragraf, num_id: int, nivel: int = 0):
+def _numerotare(paragraf, num_id: int, nivel: int = 0, indentare=None):
     """Ataseaza fluxul de numerotare direct pe paragraf.
 
     Numerele nu se scriu niciodata in text. Unul tastat se strica la prima insertie si
     apare ca modificare intr-un redline, desi cititorul vede acelasi lucru.
+
+    `indentare` primeste (stanga, atarnare) in twips si se scrie ca `w:ind` direct pe
+    paragraf. Fara ea, Word cade pe indentarea din definitia fluxului si numarul se
+    aseaza altfel decat in actele proprii, vezi INDENT_CORP.
     """
     ppr = paragraf._p.get_or_add_pPr()
     for vechi in ppr.findall(qn("w:numPr")):
@@ -96,6 +107,22 @@ def _numerotare(paragraf, num_id: int, nivel: int = 0):
     npr.append(ilvl)
     npr.append(nid)
     ppr.append(npr)
+
+    if indentare is None:
+        return
+    stanga, atarnare = indentare
+    for vechi in ppr.findall(qn("w:ind")):
+        ppr.remove(vechi)
+    ind = OxmlElement("w:ind")
+    ind.set(qn("w:left"), str(stanga))
+    ind.set(qn("w:hanging"), str(atarnare))
+    # In CT_PPr, w:ind vine dupa w:numPr si inainte de w:jc. Ordinea nu e decorativa,
+    # Word refuza documentul cand elementele nu respecta secventa din schema.
+    jc = ppr.find(qn("w:jc"))
+    if jc is not None:
+        jc.addprevious(ind)
+    else:
+        ppr.append(ind)
 
 
 def _scrie(paragraf, text: str, bold):
@@ -166,7 +193,10 @@ def _bloc(doc, elemente, stil, *, bold_implicit=False, num_id=None):
         if e_titlu:
             _culoare_titlu(p)
         if numerotare is not None:
-            _numerotare(p, numerotare)
+            # Numai corpul primeste indentarea masurata. Enumerarile cu liniuta stau in
+            # interiorul paragrafului si isi pastreaza retragerea din definitia fluxului.
+            _numerotare(p, numerotare,
+                        indentare=INDENT_CORP if numerotare == NUM_CORP else None)
         yield p
 
 
