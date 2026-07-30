@@ -40,6 +40,7 @@ AICI = Path(__file__).resolve().parent
 SABLON = AICI.parent / "assets" / "sablon-casa.docx"
 
 sys.path.insert(0, str(AICI))
+from cale_libera import alege, adauga_optiune
 import repara_pachet  # noqa: E402  spatiile de nume se verifica dupa fiecare salvare
 
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
@@ -128,6 +129,7 @@ def rezumat(doc, cale: Path, academic: bool):
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Document nou in stilul de casa")
     ap.add_argument("--output", required=True, type=Path)
+    adauga_optiune(ap)
     ap.add_argument("--titlu", help="titlul actului, scris ca Heading 1")
     ap.add_argument("--fara-antet", action="store_true",
                     help="scoate logo-ul, pentru documente interne")
@@ -145,6 +147,7 @@ def main(argv=None) -> int:
     core.author = args.autor
     core.last_modified_by = args.autor
 
+    args.output = alege(args.output, args.suprascrie)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     doc.save(str(args.output))
     # Word refuza un pachet in care Ignorable enumera prefixe nedeclarate, chiar daca

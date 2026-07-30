@@ -68,6 +68,13 @@ DOCUMENTE WORD. Stilul de casă este Georgia 10, justified, interlinie cel puți
 alineat 1,27 cm, margini 2 cm sus, 0,71 cm jos, 3,5 cm stânga, 1,5 cm dreapta, note
 Georgia 8. Track changes se semnează AMZ Law Office. Pe un document primit, autorul din
 proprietăți rămâne al lui, se schimbă doar cine l-a modificat ultima dată.
+
+NU SUPRASCRIE NICIODATĂ UN DOCUMENT EXISTENT. Cheamă instrumentul cale_de_scriere din
+persona-adrian-zamfir înainte de a salva: dacă numele e ocupat, îți dă următoarea versiune
+liberă, act_v2, act_v3 și așa mai departe, și scrii acolo. Un document livrat nu rămâne al
+tău; din clipa în care l-am deschis, poate purta munca mea. Scrierea peste el nu trece
+prin coșul de gunoi și nu lasă copie. Așa am pierdut definitiv o oră de muncă pe 30 iulie
+2026. Înlocuirea se face numai când o cer eu în cuvinte.
 ```
 
 ---

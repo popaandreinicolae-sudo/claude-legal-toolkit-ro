@@ -55,12 +55,16 @@ formele flexionate sub acelasi plafon.
 from __future__ import annotations
 
 import argparse
+import os
 import datetime as _dt
 import json
 import shutil
 import sys
 import zipfile
 from pathlib import Path
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cale_libera import alege, adauga_optiune
 
 try:
     from lxml import etree
@@ -256,12 +260,14 @@ def main(argv=None) -> int:
     a = sub.add_parser("apply", help="pune accentul si scrie documentul")
     a.add_argument("--input", required=True, type=Path)
     a.add_argument("--output", required=True, type=Path)
+    adauga_optiune(a)
     a.add_argument("--termeni", required=True, type=Path)
     a.add_argument("--author", default="AMZ Law Office")
     a.add_argument("--netrasat", action="store_true",
                    help="bold nemarcat; Reject All nu mai reproduce formatarea originala")
     args = ap.parse_args(argv)
 
+    args.output = alege(args.output, args.suprascrie)
     spec = json.loads(args.termeni.read_text(encoding="utf-8"))
     date = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     try:

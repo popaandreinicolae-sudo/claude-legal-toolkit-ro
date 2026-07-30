@@ -73,6 +73,18 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/ruleaza.sh\" fara_suprascriere.py",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

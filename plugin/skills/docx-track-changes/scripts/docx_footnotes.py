@@ -47,6 +47,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cale_libera import alege, adauga_optiune
 
 try:
     from lxml import etree
@@ -157,26 +158,47 @@ def _make_ref_run(fid, model_run, ref_style):
     return r
 
 
+# Forma de casa a notei de subsol: Georgia 8 pt, aliniere justified, interlinie simpla,
+# fara alineat de prima linie. Marimea se scrie in jumatati de punct.
+FONT_NOTA = "Georgia"
+MARIME_NOTA = "16"
+
+
 def _make_note(fid, text, text_style, ref_style, sz):
+    # Fara marime scrisa explicit, nota mosteneste corpul, adica Georgia 10, si iese la
+    # aceeasi dimensiune cu textul actului. Pana pe 30 iulie 2026 asta se intampla ori de
+    # cate ori documentul nu avea deja o nota din care sa se ia marimea, adica exact la
+    # actele scrise de la zero, si autorul o corecta de mana in fiecare nota.
+    sz = sz or MARIME_NOTA
+
     note = etree.Element(w("footnote"))
     note.set(w("id"), str(fid))
     p = etree.SubElement(note, w("p"))
     ppr = etree.SubElement(p, w("pPr"))
     etree.SubElement(ppr, w("pStyle")).set(w("val"), text_style)
+    spacing = etree.SubElement(ppr, w("spacing"))
+    spacing.set(w("before"), "0")
+    spacing.set(w("after"), "0")
+    spacing.set(w("line"), "240")
+    spacing.set(w("lineRule"), "auto")
+    etree.SubElement(ppr, w("ind")).set(w("firstLine"), "0")
+    etree.SubElement(ppr, w("jc")).set(w("val"), "both")
+
+    def _forma(rpr):
+        fonts = etree.SubElement(rpr, w("rFonts"))
+        for atr in ("ascii", "hAnsi", "cs"):
+            fonts.set(w(atr), FONT_NOTA)
+        for tag in ("sz", "szCs"):
+            etree.SubElement(rpr, w(tag)).set(w("val"), sz)
 
     r1 = etree.SubElement(p, w("r"))
     rpr1 = etree.SubElement(r1, w("rPr"))
     etree.SubElement(rpr1, w("rStyle")).set(w("val"), ref_style)
-    if sz:
-        for tag in ("sz", "szCs"):
-            etree.SubElement(rpr1, w(tag)).set(w("val"), sz)
+    _forma(rpr1)
     etree.SubElement(r1, w("footnoteRef"))
 
     r2 = etree.SubElement(p, w("r"))
-    if sz:
-        rpr2 = etree.SubElement(r2, w("rPr"))
-        for tag in ("sz", "szCs"):
-            etree.SubElement(rpr2, w(tag)).set(w("val"), sz)
+    _forma(etree.SubElement(r2, w("rPr")))
     t = etree.SubElement(r2, w("t"))
     t.set(XML_SPACE, "preserve")
     t.text = " " + text.strip()
@@ -324,6 +346,7 @@ def cmd_apply(args):
         sys.stderr.write("Nu s-a scris niciun fisier.\n")
         return 3
 
+    args.output = str(alege(args.output, args.suprascrie))
     dtc.save_docx(args.input, args.output, parts)
     report = {"input": args.input, "output": args.output, "author": author,
               "created": [{"footnote_id": f, "paragraph": "doc:%d" % i, "text": t}
@@ -362,6 +385,7 @@ def main(argv=None):
     a = sub.add_parser("apply", help="insereaza notele descrise in JSON")
     a.add_argument("--input", required=True)
     a.add_argument("--output", required=True)
+    adauga_optiune(a)
     a.add_argument("--notes", required=True)
     a.add_argument("--author", default=None)
     a.add_argument("--ref-style", default=DEFAULT_REF_STYLE)

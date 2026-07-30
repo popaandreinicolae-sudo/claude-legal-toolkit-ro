@@ -17,6 +17,34 @@ originalul si Accept All produce varianta ceruta. Protocolul de aici acopera res
 adica situatiile in care trebuie sa umbli direct in XML, si tine regulile care nu se
 schimba indiferent de traseu.
 
+## Regula 0, nu scrie niciodata peste un document existent
+
+Cea mai costisitoare pierdere nu vine dintr-un pachet stricat, ci dintr-o copiere banala
+peste un fisier bun. Pe 30 iulie 2026 un act regenerat a fost copiat peste documentul in
+care lucra autorul, salvat de el cu 35 de minute inainte. Comanda a taiat fisierul la zero
+si a scris in aceleasi clustere tocmai eliberate. Nu a mai fost nimic de recuperat:
+scrierea peste un fisier nu trece prin cosul de gunoi, Restore Points si File History nu
+erau pornite, recuperarea automata a Word fusese stearsa chiar de salvarea autorului, iar
+cautarea in datele brute de pe amandoua discurile, pe doua formate, a intors numai
+documente straine.
+
+Cand fisierul in care ai vrea sa scrii exista, scrii alaturi, in urmatoarea versiune
+libera:
+
+```python
+from cale_libera import cale_libera        # ~/.claude/skills/docx-footnotes/scripts
+iesire = cale_libera("D:/Dosar/act.docx")  # act_v2.docx daca act.docx exista
+```
+
+Scripturile skill-ului o cheama singure, iar steagul `--suprascrie` exista pentru cazurile
+in care inlocuirea e chiar ceruta. Hook-ul `fara_suprascriere.py` opreste comenzile de
+copiere, mutare si scriere peste un document existent. Pe Claude Desktop, unde scripturile
+nu ruleaza, se cheama instrumentul `cale_de_scriere` din serverul MCP
+persona-adrian-zamfir.
+
+Un document livrat nu ramane al tau. Din clipa in care autorul l-a deschis, poate purta
+munca lui, iar data de pe disc e singurul semn. Inlocuirea se face numai cand o cere el.
+
 ## Regula 1, copie inainte de orice
 
 ```python

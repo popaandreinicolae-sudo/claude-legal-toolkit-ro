@@ -50,6 +50,10 @@ Orice editare care nu se potriveste opreste executia cu eroare. Tool-ul nu ghice
 
 from __future__ import annotations
 
+import os as _os
+import sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from cale_libera import alege, adauga_optiune
 import argparse
 import datetime as _dt
 import json
@@ -1114,6 +1118,7 @@ def cmd_apply(args):
             continue
         apply_revisions(parts[name], new_texts, author, date, ids, stats, caps_styles)
 
+    args.output = str(alege(args.output, args.suprascrie))
     save_docx(args.input, args.output, parts)
 
     report = {
@@ -1252,6 +1257,7 @@ def main(argv=None):
     p_apply = sub.add_parser("apply", help="scrie modificarile urmarite")
     p_apply.add_argument("--input", required=True)
     p_apply.add_argument("--output", required=True)
+    adauga_optiune(p_apply)
     p_apply.add_argument("--edits", help="fisier JSON cu editari")
     p_apply.add_argument("--revised", help="varianta revizuita (.docx, .txt sau .md)")
     p_apply.add_argument("--author", default=PARSER_DEFAULT_AUTHOR)

@@ -56,6 +56,7 @@ AICI = Path(__file__).resolve().parent
 SABLON = AICI.parent / "assets" / "sablon-casa.docx"
 
 sys.path.insert(0, str(AICI))
+from cale_libera import alege, adauga_optiune
 import repara_pachet  # noqa: E402  spatiile de nume se verifica dupa fiecare salvare
 
 # Masurat pe actele proprii. Corpul se numeroteaza [1], [2], [3], cu paranteze drepte,
@@ -337,12 +338,14 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Act complet in forma casei")
     ap.add_argument("--continut", required=True, type=Path, help="fisier JSON cu continutul")
     ap.add_argument("--output", required=True, type=Path)
+    adauga_optiune(ap)
     ap.add_argument("--autor", default="Adrian Zamfir")
     args = ap.parse_args(argv)
 
     spec = json.loads(args.continut.read_text(encoding="utf-8"))
     doc, numarate = construieste(spec, args.autor)
 
+    args.output = alege(args.output, args.suprascrie)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     doc.save(str(args.output))
     # Word refuza un pachet in care Ignorable enumera prefixe nedeclarate, chiar daca
