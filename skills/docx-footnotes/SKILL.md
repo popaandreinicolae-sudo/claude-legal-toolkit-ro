@@ -145,6 +145,31 @@ definitie de stil. De aceea nu se seteaza; vine din text acolo unde e nevoie.
 Majusculele stau in stil, nu scrise in text. Cine copiaza titlul primeste forma
 originala, iar un redline nu marcheaza diferenta de capitalizare ca modificare.
 
+### Centrarea si spatierea, cerute de autor pe 30 iulie 2026
+
+Titlul principal al actului se centreaza si primeste spatiu de o parte si de alta,
+`w:jc="center"` cu `w:spacing w:before="160" w:after="160"`.
+
+Titlurile si subtitlurile de sectiune primesc spatiu inainte, `w:before="160"
+w:after="100"`. Rostul e lizibilitatea: cititorul vede ca a inceput o sectiune noua,
+fiindca titlurile se despart intre ele.
+
+Cand titlul cade in capul unei pagini, spatiul dinainte nu mai are rost, pagina noua
+separa singura. Word ignora deja `space before` la inceput de pagina cand ruperea e
+automata. Pentru ruperile puse de mana, `scrie_document.py` scrie comutatorul
+`w:suppressSpBfAfterPgBrk` in `word/settings.xml`, deci regula e una singura si nu cere
+interventie de la caz la caz.
+
+Valorile vin din actele proprii, nu sunt alese. In cererea de camera preliminara
+Transcarpat, `w:before="160"` apare de 88 de ori si `w:after="100"` de 154 de ori,
+formele dominante. Toate stau in `SPATIU_TITLU_PRINCIPAL` si `SPATIU_TITLU_SECTIUNE`.
+
+Spatierea si alinierea se scriu direct pe paragraf, nu in definitia stilului, fiindca
+asa arata actele proprii: `Heading1` nu poarta nici spatiere, nici aliniere.
+
+`keepNext` nu se pune. In actele proprii nu apare pe niciun paragraf, deci nu se
+introduce ca imbunatatire generala.
+
 ## Numerotarea
 
 Se face automat, prin `w:numPr`, niciodata scrisa ca text in paragraf. Un numar tastat

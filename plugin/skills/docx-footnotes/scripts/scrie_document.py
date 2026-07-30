@@ -72,6 +72,31 @@ NUM_FARA = 0
 # hanging=360, iar numarul se aseaza cu 1,27 cm mai la dreapta decat in actele proprii.
 INDENT_CORP = (0, 720)
 
+# Spatierea din jurul titlurilor, in twips. Valorile sunt cele dominante in actele
+# proprii: `w:before="160"` apare de 88 de ori in cererea de camera preliminara
+# Transcarpat, iar `w:after="100"` de 154 de ori.
+#
+# Titlul principal se centreaza si primeste spatiu de o parte si de alta. Titlurile de
+# sectiune primesc spatiu inainte, ca cititorul sa vada unde incepe una noua.
+#
+# Cand titlul cade in capul unei pagini, spatiul dinainte nu mai are rost, pagina noua
+# separa singura. Word ignora deja `space before` la inceput de pagina cand ruperea e
+# automata; pentru ruperile puse de mana, comutatorul `suppressSpBfAfterPgBrk` din
+# settings.xml face acelasi lucru, vezi `_fara_spatiu_in_capul_paginii`.
+SPATIU_TITLU_PRINCIPAL = (160, 160)
+SPATIU_TITLU_SECTIUNE = (160, 100)
+
+# Ordinea copiilor lui w:pPr din schema. Word refuza documentul cand nu e respectata,
+# deci elementele noi se insereaza pe pozitie, nu la coada.
+ORDINE_PPR = (
+    "pStyle", "keepNext", "keepLines", "pageBreakBefore", "framePr", "widowControl",
+    "numPr", "suppressLineNumbers", "pBdr", "shd", "tabs", "suppressAutoHyphens",
+    "kinsoku", "wordWrap", "overflowPunct", "topLinePunct", "autoSpaceDE", "autoSpaceDN",
+    "bidi", "adjustRightInd", "snapToGrid", "spacing", "ind", "contextualSpacing",
+    "mirrorIndents", "suppressOverlap", "jc", "textDirection", "textAlignment",
+    "textboxTightWrap", "outlineLvl", "divId", "cnfStyle", "rPr", "sectPr", "pPrChange",
+)
+
 # python-docx cere numele stilului, nu identificatorul. Cautarea dupa id e depreciata si
 # scoate un avertisment la fiecare paragraf.
 STIL_CORP = "Body cu nr de paragraf"
@@ -84,6 +109,59 @@ STIL_SIMPLU = "Normal"
 # in 54%, urmata de #1F497D cu 27%. Definitia stilului `Heading1` poarta un violet
 # #590056, dar el este suprascris de fiecare data, deci nu ajunge niciodata pe hartie.
 TITLU_CULOARE = "244061"
+
+
+def _pune_in_pPr(ppr, element, nume: str):
+    """Insereaza elementul pe pozitia ceruta de schema, nu la coada."""
+    for vechi in ppr.findall(qn("w:" + nume)):
+        ppr.remove(vechi)
+    rang = ORDINE_PPR.index(nume)
+    for copil in ppr:
+        eticheta = copil.tag.split("}")[-1]
+        if eticheta in ORDINE_PPR and ORDINE_PPR.index(eticheta) > rang:
+            copil.addprevious(element)
+            return
+    ppr.append(element)
+
+
+def _spatiere(paragraf, inainte: int, dupa: int, centrat: bool = False):
+    """Scrie spatierea si, la cerere, centrarea direct pe paragraf.
+
+    Direct pe paragraf, nu in stil, fiindca asa arata actele proprii: definitia lui
+    `Heading1` nu poarta nici spatiere, nici aliniere, totul e pus pe paragraf.
+    """
+    ppr = paragraf._p.get_or_add_pPr()
+    sp = OxmlElement("w:spacing")
+    sp.set(qn("w:before"), str(inainte))
+    sp.set(qn("w:after"), str(dupa))
+    _pune_in_pPr(ppr, sp, "spacing")
+    if centrat:
+        jc = OxmlElement("w:jc")
+        jc.set(qn("w:val"), "center")
+        _pune_in_pPr(ppr, jc, "jc")
+
+
+def _fara_spatiu_in_capul_paginii(doc):
+    """Spune Word sa nu aplice spatiul dinainte cand paragraful deschide o pagina.
+
+    Word face deja asta la ruperile automate de pagina. Comutatorul acopera si ruperile
+    puse de mana, ca regula sa fie una singura: titlul primeste spatiu inainte peste tot,
+    in afara de capul paginii, unde pagina noua separa singura.
+    """
+    settings = doc.settings.element
+    compat = settings.find(qn("w:compat"))
+    if compat is None:
+        compat = OxmlElement("w:compat")
+        settings.append(compat)
+    if compat.find(qn("w:suppressSpBfAfterPgBrk")) is not None:
+        return
+    flag = OxmlElement("w:suppressSpBfAfterPgBrk")
+    # In CT_Compat, comutatoarele stau inaintea elementelor w:compatSetting.
+    primul_setting = compat.find(qn("w:compatSetting"))
+    if primul_setting is not None:
+        primul_setting.addprevious(flag)
+    else:
+        compat.append(flag)
 
 
 def _numerotare(paragraf, num_id: int, nivel: int = 0, indentare=None):
@@ -111,18 +189,10 @@ def _numerotare(paragraf, num_id: int, nivel: int = 0, indentare=None):
     if indentare is None:
         return
     stanga, atarnare = indentare
-    for vechi in ppr.findall(qn("w:ind")):
-        ppr.remove(vechi)
     ind = OxmlElement("w:ind")
     ind.set(qn("w:left"), str(stanga))
     ind.set(qn("w:hanging"), str(atarnare))
-    # In CT_PPr, w:ind vine dupa w:numPr si inainte de w:jc. Ordinea nu e decorativa,
-    # Word refuza documentul cand elementele nu respecta secventa din schema.
-    jc = ppr.find(qn("w:jc"))
-    if jc is not None:
-        jc.addprevious(ind)
-    else:
-        ppr.append(ind)
+    _pune_in_pPr(ppr, ind, "ind")
 
 
 def _scrie(paragraf, text: str, bold):
@@ -192,6 +262,7 @@ def _bloc(doc, elemente, stil, *, bold_implicit=False, num_id=None):
         _scrie(p, text, bold)
         if e_titlu:
             _culoare_titlu(p)
+            _spatiere(p, *SPATIU_TITLU_SECTIUNE)
         if numerotare is not None:
             # Numai corpul primeste indentarea masurata. Enumerarile cu liniuta stau in
             # interiorul paragrafului si isi pastreaza retragerea din definitia fluxului.
@@ -223,6 +294,7 @@ def construieste(spec: dict, autor: str):
             p = doc.add_paragraph()
         p.add_run(spec["titlu"]).bold = True
         _culoare_titlu(p)
+        _spatiere(p, *SPATIU_TITLU_PRINCIPAL, centrat=True)
 
     list(_bloc(doc, spec.get("obiect"), STIL_SIMPLU, bold_implicit=True))
 
@@ -233,6 +305,8 @@ def construieste(spec: dict, autor: str):
 
     if gol is not None and len(doc.paragraphs) > 1:
         gol._element.getparent().remove(gol._element)
+
+    _fara_spatiu_in_capul_paginii(doc)
 
     core = doc.core_properties
     core.author = autor
