@@ -37,3 +37,6 @@ venv/
 # Sistem
 .DS_Store
 Thumbs.db
+
+# Cache-ul verificatorului de dispozitive, se reface singur
+hooks/.dispozitiv_cache.json
