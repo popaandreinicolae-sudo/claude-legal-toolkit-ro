@@ -67,7 +67,8 @@ def run_gate(path: Path, network: bool = True) -> dict:
     #    subagentul citation-verifier prin MCP-uri (legal-verificator-ro, hudoc, eurlex)
     #    inainte de a deveni NO-GO. Asa evitam stergerea unei citari reale pe fals-pozitiv.
     #  - AVERTISMENT: restul (denumiri depasite, liste incomplete, densitate cifre, ton AI).
-    BLOCK_PREFIX = ("ACT ABROGAT", "POSIBILA EROARE DE ORDIN", "PRAG DEFINIT", "SURSA-FANTOMA")
+    BLOCK_PREFIX = ("ACT ABROGAT", "POSIBILA EROARE DE ORDIN", "PRAG DEFINIT", "SURSA-FANTOMA",
+                    "DISPOZITIV CONTRAZIS", "ATRIBUIRE NEVERIFICABILA")
     ESCALATE_PREFIX = ("CITARE NEGASITA", "POSIBILA TRANSPUNERE")
 
     def classify(prob):
@@ -107,6 +108,46 @@ def run_gate(path: Path, network: bool = True) -> dict:
             classify(prob)
     except Exception as e:
         report["warnings"].append(f"numeric check indisponibil: {e}")
+
+    # 3bis. afirmatii despre dispozitiv (numai la poarta cu retea: cere sesiune sintact)
+    if network:
+        try:
+            import sustineri_dispozitiv
+            cache = sustineri_dispozitiv._cache_citeste()
+            sd = sustineri_dispozitiv.analizeaza(text, cache)
+            sustineri_dispozitiv._cache_scrie(cache)
+            report["checks"]["dispozitiv"] = sd
+            for r in sd:
+                mesaj = "DISPOZITIV CONTRAZIS - Decizia nr. %s: %s" % (r["decizie"], r["motiv"])
+                if r["nivel"] == "EROARE":
+                    # verdict determinist pe sursa primara (sintact), deci blocant
+                    report["blocking"].append(mesaj)
+                else:
+                    report["warnings"].append(
+                        "dispozitiv neverificat - Decizia nr. %s: %s" % (r["decizie"], r["motiv"]))
+        except Exception as e:
+            report["warnings"].append(f"verificarea dispozitivelor indisponibila: {e}")
+
+    # 3ter. atribuiri la paragrafe numite (tot cu retea, acelasi cache sintact)
+    if network:
+        try:
+            import atribuiri_paragraf
+            import sustineri_dispozitiv as _sd
+            cache = _sd._cache_citeste()
+            ap_ = atribuiri_paragraf.analizeaza(text, cache)
+            _sd._cache_scrie(cache)
+            report["checks"]["atribuiri"] = ap_
+            for r in ap_:
+                if r["nivel"] == "EROARE":
+                    report["blocking"].append(
+                        "ATRIBUIRE NEVERIFICABILA - Decizia nr. %s, par. %s: %s"
+                        % (r["decizie"], r["paragraf"], r["motiv"]))
+                else:
+                    report["warnings"].append(
+                        "atribuire neverificata - Decizia nr. %s, par. %s: %s"
+                        % (r["decizie"], r["paragraf"], r["motiv"]))
+        except Exception as e:
+            report["warnings"].append(f"verificarea atribuirilor indisponibila: {e}")
 
     # 4. ton AI
     try:

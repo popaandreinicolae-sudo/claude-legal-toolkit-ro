@@ -129,9 +129,38 @@ Monitorul Oficial al Romaniei, Partea I, nr. 245 din 24 martie 2023, par. 65.
 6. Analiza jurisprudentei cu ratie decidendi plus standard aplicat.
 7. Verificari finale prin MCP plus marcaj [VERIFICARE NECESARA] unde lipseste sursa.
 
+## Unde se cauta fiecare fel de hotarare
+
+Fiecare instanta are sursa ei, si acolo se merge INTAI. Nu se cauta o hotarare CEDO in
+sintact si nici una a Curtii Constitutionale pe eurlex.
+
+**Decizii CCR.** `sintact_search`, `search_ccr_decision`, `fetch_ccr_decision_text`. Daca
+sintact nu o gaseste, NU se abandoneaza: se cauta pe site-ul Curtii, ccr.ro, si pe
+legislatie.just.ro. Identificarea prin fateta de emitent poate esua chiar pentru decizii
+mari, cum s-a intamplat pe 31 iulie 2026 cu Decizia nr. 405/2016, gasita de cautarea
+simpla dar nu de `_ccr_candidates`. Textul luat de pe linia a doua poarta mentiunea sursei.
+
+**Hotarari CJUE.** `eurlex_search_caselaw` si `eurlex_get_document`, dupa numarul cauzei
+sau dupa CELEX. Cand textul nu vine prin MCP, se ia direct din CELLAR, adica
+`http://publications.europa.eu/resource/celex/<CELEX>`, cu antetul `Accept-Language`.
+`check_in_force` inainte de a cita un act ca fiind in vigoare.
+
+**Hotarari CEDO.** `hudoc_search_cases`, `hudoc_get_judgment`, `hudoc_search_by_article`.
+Numarul cererii, data si paragraful se iau de acolo, niciodata din memorie.
+
+**Legislatie romaneasca.** Ordinea din CLAUDE.md, sintact, apoi Indaco, apoi
+legislatie.just.ro, fiecare treapta de rezerva marcata in raspuns.
+
 ## Anti-halucinare specifica drept constitutional
 
 NU inventa numere de decizii CCR, numere de cerere CEDO, ECLI pentru CJUE, pagini in tratate, prenume autori, ani publicare. Marcheaza explicit [VERIFICARE NECESARA] prin MCP `legal-verificator-ro` plus `eurlex` plus `hudoc`.
+
+CITAREA E VERBATIM. Ce se pune in seama unei instante e exact ce a spus ea, intre
+ghilimele. Generalizarea noastra se scrie ca fraza separata, asumata, fara numar de
+paragraf. Verificat determinist de `hooks/atribuiri_paragraf.py`, care cere ca partea
+atribuita unui paragraf numit sa fie preponderent citata si confrunta citatul cu chiar
+acel paragraf; iar `hooks/sustineri_dispozitiv.py` compara solutia si intinderea pretinse
+cu dispozitivul real. Amandoua sunt semnale blocante in quality-gate.
 
 ## Pipeline cu alte skill-uri
 

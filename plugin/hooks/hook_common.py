@@ -89,12 +89,55 @@ def _docx_note(p: Path) -> str:
     return text
 
 
-def read_text(p: Path) -> str:
-    if p.suffix.lower() == '.docx':
+def _docx_corp(p: Path) -> str:
+    """Corpul documentului, cu modificarile urmarite ACCEPTATE.
+
+    `python-docx` expune la `Paragraph.text` doar run-urile care sunt copii directi ai
+    lui `w:p`. Un run din interiorul unui `w:ins` are ca parinte elementul de revizie,
+    deci NU apare. Pe un redline asta inseamna ca tot ce am propus eu e invizibil, iar
+    stratul anti-halucinare verifica exact partea pe care nu am scris-o.
+
+    Masurat pe 31 iulie 2026, pe excepția din dosarul Transcarpat: 51.068 de caractere
+    citite din 86.878. Lipseau, intre altele, doua decizii ale Curtii Constitutionale,
+    o cauza CJUE si doua trimiteri la directiva, toate adaugate de mine ca revizii.
+
+    Se citeste varianta ACCEPTATA, fiindca aceea e propunerea supusa verificarii:
+    textul din `w:ins` intra, textul din `w:del` iese. Acelasi motiv ca la
+    `_docx_note`, alt punct orb al aceleiasi biblioteci.
+    """
+    try:
+        import zipfile
+        from lxml import etree
+    except ImportError:
         try:
             from docx import Document
-            corp = "\n".join(par.text for par in Document(str(p)).paragraphs if par.text.strip())
+            return "\n".join(par.text for par in Document(str(p)).paragraphs if par.text.strip())
         except Exception:
+            return ""
+    W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
+    try:
+        with zipfile.ZipFile(p) as z:
+            rad = etree.fromstring(z.read('word/document.xml'))
+    except Exception:
+        return ""
+    linii = []
+    for par in rad.iter('{%s}p' % W):
+        bucati = []
+        for r in par.iter('{%s}r' % W):
+            parinte = r.getparent()
+            if parinte is not None and etree.QName(parinte).localname == 'del':
+                continue
+            bucati.append("".join((t.text or "") for t in r.iter('{%s}t' % W)))
+        linie = "".join(bucati).strip()
+        if linie:
+            linii.append(linie)
+    return "\n".join(linii)
+
+
+def read_text(p: Path) -> str:
+    if p.suffix.lower() == '.docx':
+        corp = _docx_corp(p)
+        if not corp:
             return ""
         note = _docx_note(p)
         return (corp + "\n" + note) if note else corp

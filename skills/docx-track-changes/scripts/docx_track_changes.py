@@ -1120,9 +1120,11 @@ def cmd_apply(args):
 
     args.output = str(alege(args.output, args.suprascrie))
     save_docx(args.input, args.output, parts)
+    obiecte_scoase = curata_obiecte_din(args.output)
 
     report = {
         "input": args.input,
+        "obiecte_incorporate_scoase": obiecte_scoase,
         "output": args.output,
         "author": author,
         "date": date,
@@ -1152,6 +1154,63 @@ def _max_revision_id(parts):
                 except ValueError:
                     pass
     return best
+
+
+def curata_obiecte_din(cale):
+    """Scoate obiectele OLE din documentul TOCMAI produs. Intoarce cate au fost.
+
+    Documentul-sursa vine de la client si poarta obiectele lui incorporate, care se vad
+    ca pictograme si duc cu ele fisierul incorporat intreg. Pe 31 iulie 2026 acolo statea
+    plangerea prealabila a altui client, cu nume, adresa si CNP, iar ea trecea prin toate
+    versiunile pe care le produceam. Autorul a cerut ca ele sa dispara din documentele pe
+    care le creez de acum inainte, iar cele existente sa ramana neatinse. De aceea
+    curatarea se face pe IESIRE, niciodata pe intrare.
+    """
+    import importlib.util as _imp
+    import os as _os
+    from pathlib import Path as _P
+    _cale = _os.path.join(_os.path.expanduser("~"), ".claude", "skills",
+                          "docx-footnotes", "scripts", "curata_obiecte.py")
+    if not _os.path.exists(_cale):
+        return 0
+    try:
+        _spec = _imp.spec_from_file_location("curata_obiecte", _cale)
+        _mod = _imp.module_from_spec(_spec)
+        _spec.loader.exec_module(_mod)
+        iesire = _P(cale)
+        if not sum(len(v) for v in _mod.analizeaza(iesire).get("obiecte", {}).values()):
+            return 0
+        temp = iesire.with_name(iesire.stem + ".fara-obiecte.tmp" + iesire.suffix)
+        temp.unlink(missing_ok=True)
+        rez = _mod.curata(iesire, temp)
+        _os.replace(str(temp), str(iesire))          # inlocuim doar fisierul nostru nou
+        return rez.get("obiecte_scoase", 0)
+    except Exception:
+        return 0                                     # fail-open, ca tot stratul
+
+
+def obiecte_incorporate(cale):
+    """Obiectele OLE din document, care se vad ca pictograme si poarta numele sursei.
+
+    Un act primit de la client aduce cu el obiectele incorporate din sablonul lui. Pe
+    31 iulie 2026 au ajuns asa doua pictograme cu numele altui client in antetul unei
+    exceptii care urma sa plece la Curtea Constitutionala. Verificarea se ia din
+    curata_obiecte.py, care tine si stergerea.
+    """
+    import importlib.util as _imp
+    import os as _os
+    _cale = _os.path.join(_os.path.expanduser("~"), ".claude", "skills",
+                          "docx-footnotes", "scripts", "curata_obiecte.py")
+    if not _os.path.exists(_cale):
+        return {}
+    try:
+        _spec = _imp.spec_from_file_location("curata_obiecte", _cale)
+        _mod = _imp.module_from_spec(_spec)
+        _spec.loader.exec_module(_mod)
+        from pathlib import Path as _P
+        return _mod.analizeaza(_P(cale)).get("obiecte", {})
+    except Exception:
+        return {}                                        # fail-open, ca tot stratul
 
 
 def spatii_de_nume_rupte(cale):
@@ -1227,6 +1286,7 @@ def cmd_verify(args):
                 })
     larg = revizii_prea_largi(parts)
     ns_rupte = spatii_de_nume_rupte(args.input)
+    obiecte = obiecte_incorporate(args.input)
     summary = {
         "input": args.input,
         "total": len(found),
@@ -1235,9 +1295,17 @@ def cmd_verify(args):
         "paragraph_marks": sum(1 for f in found if f["type"].startswith("paragraph-mark")),
         "redline_prea_larg": larg,
         "spatii_de_nume_rupte": ns_rupte,
+        "obiecte_incorporate": obiecte,
         "revisions": found if args.detail else found[:20],
     }
     print(json.dumps(summary, ensure_ascii=False, indent=2))
+    if obiecte:
+        sys.stderr.write(
+            "BLOCANT: documentul poarta %d obiect(e) incorporate, care se vad ca pictograme, "
+            "adesea cu numele fisierului altui client. Scoate-le cu: python "
+            "~/.claude/skills/docx-footnotes/scripts/curata_obiecte.py curata --input %s "
+            "--output <cale libera>\n" % (sum(len(v) for v in obiecte.values()), args.input))
+        return 1
     if ns_rupte:
         sys.stderr.write(
             "BLOCANT: Word va refuza fisierul, Ignorable enumera prefixe nedeclarate in "
