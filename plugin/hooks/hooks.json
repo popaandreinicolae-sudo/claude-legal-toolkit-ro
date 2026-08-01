@@ -80,6 +80,11 @@
             "type": "command",
             "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/ruleaza.sh\" quality_gate_stop_hook.py",
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/ruleaza.sh\" arhiveaza_memoria.py",
+            "timeout": 25
           }
         ]
       }
