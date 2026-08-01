@@ -37,6 +37,7 @@ $Skills = @(
     'docx-livrare-check'
     'docx-safe-edit'
     'docx-track-changes-review'
+    'pdf-scanat'
     'source-pack-grounding'
     'task-contract'
     'ub-drept-citation'
