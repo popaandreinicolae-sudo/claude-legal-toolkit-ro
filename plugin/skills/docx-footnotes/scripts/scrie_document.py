@@ -30,7 +30,11 @@ Formatul continutului
     "Paragraf obisnuit, primeste automat numarul [1].",
     {"text": "Termenul de arma interzisa nu este definit.", "bold": ["arma interzisa"]},
     {"tip": "marcator", "text": "element de enumerare, primeste liniuta"},
-    {"tip": "titlu", "text": "I. IN FAPT"}
+    {"tip": "titlu", "text": "I. IN FAPT"},
+    {"tip": "citat", "text": "„Art. 29"},
+    {"tip": "citat", "text": "(1) Curtea Constitutionala decide asupra exceptiilor ..."},
+    {"tip": "citat", "text": "(...)"},
+    {"tip": "citat", "text": "(5) Daca exceptia este inadmisibila ...”"}
   ],
   "final": ["Cu deosebita consideratie,", "Av. Adrian Zamfir"]
 }
@@ -92,8 +96,17 @@ INDENT_SIMPLU = 0
 # separa singura. Word ignora deja `space before` la inceput de pagina cand ruperea e
 # automata; pentru ruperile puse de mana, comutatorul `suppressSpBfAfterPgBrk` din
 # settings.xml face acelasi lucru, vezi `_fara_spatiu_in_capul_paginii`.
+# Titlul principal respira de o parte si de alta. Celelalte titluri primesc spatiu NUMAI
+# inainte, ca sa se desparta de textul de deasupra si sa ramana lipite de propriul continut.
+# Cerut de autor pe 30 iulie 2026 si reconfirmat pe 1 august, dupa ce titlul principal al
+# cererii de sesizare Transcarpat a iesit lipit de paragraful de deasupra.
 SPATIU_TITLU_PRINCIPAL = (160, 160)
-SPATIU_TITLU_SECTIUNE = (160, 100)
+SPATIU_TITLU_SECTIUNE = (160, 0)
+
+# Citatele de lege si de jurisprudenta se dau ca bloc retras, cu italic. Retragerea din
+# stanga separa citatul de argumentatia proprie, iar alineatele raman fiecare pe randul lui,
+# ca judecatorul care verifica o conditie sa gaseasca alineatul dintr-o privire.
+INDENT_CITAT = 720
 
 # Ordinea copiilor lui w:pPr din schema. Word refuza documentul cand nu e respectata,
 # deci elementele noi se insereaza pe pozitie, nu la coada.
@@ -131,6 +144,20 @@ def _pune_in_pPr(ppr, element, nume: str):
             copil.addprevious(element)
             return
     ppr.append(element)
+
+
+def _indenteaza_citat(paragraf):
+    """Retrage blocul de citat fata de corpul actului, fara atarnare.
+
+    Scris direct pe paragraf, ca si spatierea titlurilor, fiindca asa arata actele proprii:
+    forma sta pe paragraf, nu in definitia stilului."""
+    ppr = paragraf._p.get_or_add_pPr()
+    for vechi in ppr.findall(qn("w:ind")):
+        ppr.remove(vechi)
+    ind = OxmlElement("w:ind")
+    ind.set(qn("w:left"), str(INDENT_CITAT))
+    ind.set(qn("w:firstLine"), "0")
+    _pune_in_pPr(ppr, ind, "ind")
 
 
 def _spatiere(paragraf, inainte: int, dupa: int, centrat: bool = False):
@@ -265,10 +292,15 @@ def _bloc(doc, elemente, stil, *, bold_implicit=False, num_id=None):
         stil_efectiv = stil
         numerotare = num_id
         e_titlu = tip == "titlu"
+        e_citat = tip == "citat"
         if tip == "marcator":
             numerotare = NUM_MARCATOR
         elif e_titlu:
             stil_efectiv = STIL_TITLU
+            numerotare = None
+        elif e_citat:
+            # Citatul iese din fluxul numerotat al corpului: nu e argumentul nostru.
+            stil_efectiv = STIL_SIMPLU
             numerotare = None
 
         try:
@@ -278,6 +310,10 @@ def _bloc(doc, elemente, stil, *, bold_implicit=False, num_id=None):
 
         bold = True if e_titlu else item.get("bold", bold_implicit)
         _scrie(p, text, bold)
+        if e_citat:
+            for r in p.runs:
+                r.italic = True
+            _indenteaza_citat(p)
         if e_titlu:
             _culoare_titlu(p)
             _spatiere(p, *SPATIU_TITLU_SECTIUNE)
@@ -286,7 +322,8 @@ def _bloc(doc, elemente, stil, *, bold_implicit=False, num_id=None):
             # interiorul paragrafului si isi pastreaza retragerea din definitia fluxului.
             _numerotare(p, numerotare,
                         indentare=INDENT_CORP if numerotare == NUM_CORP else None)
-        elif stil_efectiv == STIL_SIMPLU:
+        elif stil_efectiv == STIL_SIMPLU and not e_citat:
+            # Citatul isi pastreaza retragerea proprie; alinierea la margine ar sterge-o.
             _aliniaza_la_margine(p)
         yield p
 

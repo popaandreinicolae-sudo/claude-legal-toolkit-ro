@@ -103,6 +103,38 @@ in corespondenta, deci numarul trebuie sa se copieze impreuna cu textul.
 bold, termenii definiti, denumirile partilor, temeiurile invocate. Un act fara bold nu
 seamana cu ale tale.
 
+### Citatele, italic intotdeauna, iar textul de lege ca bloc
+
+Doua reguli, cerute de autor pe 1 august 2026, la revizuirea cererii de sesizare Transcarpat.
+
+**Orice citat merge cu italic.** Fara exceptie, fie ca e o fraza dintr-o hotarare, un fragment
+de doctrina sau un text de lege.
+
+**Textul de lege, si jurisprudenta cand e intinsa, se dau ca bloc retras.** Numarul articolului
+pe rand propriu, apoi fiecare alineat ca paragraf separat, tot cu italic, iar marcajul de
+omisiune „(...)” pe randul lui. Ghilimelele deschid la inceputul blocului si se inchid la
+sfarsitul lui, nu la fiecare alineat.
+
+```
+Temei legal. Conform art. 29 din Legea nr. 47/1992 privind organizarea si functionarea
+Curtii Constitutionale:
+
+    „Art. 29
+    (1) Curtea Constitutionala decide asupra exceptiilor ridicate in fata instantelor ...
+    (2) Exceptia poate fi ridicata la cererea uneia dintre parti sau, din oficiu, ...
+    (3) Nu pot face obiectul exceptiei prevederile constatate ca fiind neconstitutionale ...
+    (...)
+    (5) Daca exceptia este inadmisibila, fiind contrara prevederilor alin. (1), (2) sau (3), ...”
+```
+
+Motivul e practic. Livrarea comprimase tot art. 29 intr-un singur paragraf curgator, cu
+alineatele lipite. Asa, judecatorul care verifica o conditie de admisibilitate trebuie sa caute
+alineatul in mijlocul unei fraze de zece randuri. Un act care ingreuneaza verificarea lucreaza
+impotriva celui care il depune.
+
+In `scrie_document.py`, blocul de citat se cere cu `{"tip": "citat", "text": "..."}`, iar
+scriptul aplica singur italicul si retragerea. Blocul se poate da si ca lista de alineate.
+
 ## Structura unei cereri de chemare in judecata
 
 Ordinea masurata pe actele proprii de acest tip:
@@ -145,14 +177,18 @@ definitie de stil. De aceea nu se seteaza; vine din text acolo unde e nevoie.
 Majusculele stau in stil, nu scrise in text. Cine copiaza titlul primeste forma
 originala, iar un redline nu marcheaza diferenta de capitalizare ca modificare.
 
-### Centrarea si spatierea, cerute de autor pe 30 iulie 2026
+### Centrarea si spatierea, cerute de autor pe 30 iulie 2026 si reconfirmate pe 1 august
 
-Titlul principal al actului se centreaza si primeste spatiu de o parte si de alta,
+Titlul principal al actului se centreaza si primeste spatiu **si inainte, si dupa**,
 `w:jc="center"` cu `w:spacing w:before="160" w:after="160"`.
 
-Titlurile si subtitlurile de sectiune primesc spatiu inainte, `w:before="160"
-w:after="100"`. Rostul e lizibilitatea: cititorul vede ca a inceput o sectiune noua,
-fiindca titlurile se despart intre ele.
+Celelalte titluri din document primesc spatiu **numai inainte**, `w:before="160"
+w:after="0"`. Rostul e lizibilitatea: cititorul vede ca a inceput o sectiune noua, fiindca
+titlul se desparte de textul de deasupra, dar ramane lipit de propriul continut.
+
+Regula asta a fost ceruta de doua ori. Pe 1 august 2026, la revizuirea cererii de sesizare
+Transcarpat, titlul principal aparea lipit de paragraful de deasupra. Cand generezi un act,
+verific-o inainte de livrare, nu dupa.
 
 Cand titlul cade in capul unei pagini, spatiul dinainte nu mai are rost, pagina noua
 separa singura. Word ignora deja `space before` la inceput de pagina cand ruperea e

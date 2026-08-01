@@ -1192,7 +1192,14 @@ async def _executa_tool(name: str, arguments: dict):
         }, ensure_ascii=False))]
     except Exception as e:
         logger.exception("Tool error: %s", e)
-        return [types.TextContent(type="text", text=json.dumps({"error": str(e)}, ensure_ascii=False))]
+        # Unele exceptii nu poarta niciun mesaj, iar str(e) gol ajungea la model drept
+        # {"error": ""}, care nu spune nici ce s-a stricat, nici ce sa faca mai departe.
+        # Tipul exceptiei si numele tool-ului sunt minimul care se poate citi. 1 aug. 2026.
+        return [types.TextContent(type="text", text=json.dumps({
+            "error": str(e) or f"{type(e).__name__} fara mesaj, in tool-ul {name}",
+            "tool": name,
+            "exceptie": type(e).__name__,
+        }, ensure_ascii=False))]
 
 
 async def run():

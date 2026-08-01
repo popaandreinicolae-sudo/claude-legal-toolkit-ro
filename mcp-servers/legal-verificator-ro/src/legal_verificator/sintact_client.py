@@ -306,6 +306,28 @@ def _search_body(query: str, category: str = None, max_results: int = 10,
     return body
 
 
+async def _sesiune(session: SintactSession) -> str:
+    """Pregateste sesiunea. Intoarce "" cand e gata, altfel motivul, spus in cuvinte.
+
+    ensure_authenticated a stat pana acum in afara oricarui try, iar exceptia lui urca
+    pana la handler-ul global al serverului, care o trimite mai departe ca
+    {"error": str(e)}. O exceptie fara mesaj ajungea astfel la model drept {"error": ""},
+    care nu spune nici ca sursa a cazut, nici ca actul lipseste. Vazut pe 1 august 2026,
+    cand modelul a citit tacerea drept "sintact nu are" si a coborat pe Indaco.
+    """
+    try:
+        if await session.ensure_authenticated():
+            return ""
+    except Exception as e:
+        logger.error("sintact ensure_authenticated: %s", e)
+        # str(e) inainte de `or`: un obiect exceptie e mereu adevarat, deci `e or ...`
+        # ar pastra exceptia goala si ar tipari tot un mesaj vid.
+        return (f"Sesiunea sintact.ro a cazut ({type(e).__name__}: {str(e) or 'fara mesaj'}). "
+                "Reia apelul, sesiunea se reface singura. Daca pica si a doua oara, "
+                "sintact e indisponibil si abia atunci se coboara pe sursele de rezerva.")
+    return "Autentificare sintact.ro esuata. Verifica SINTACT_EMAIL/SINTACT_PASSWORD in .env."
+
+
 async def search(session: SintactSession, query: str, category: str = None,
                   max_results: int = 10, start_from: int = 0,
                   sort_by_date: bool = False, try_direct_hit: bool = True) -> dict:
@@ -330,9 +352,9 @@ async def search(session: SintactSession, query: str, category: str = None,
 
     `try_direct_hit=False` opreste ultima treapta, pentru apelantii care au incercat
     deja direct hit si au cazut in cautare, cum face verify_citation."""
-    if not await session.ensure_authenticated():
-        return {"results": [], "total": 0, "source": "sintact.ro",
-                "error": "Autentificare sintact.ro esuata. Verifica SINTACT_EMAIL/SINTACT_PASSWORD in .env."}
+    motiv = await _sesiune(session)
+    if motiv:
+        return {"results": [], "total": 0, "source": "sintact.ro", "error": motiv}
 
     cu_nr = insereaza_nr(query)
     fara_nr = scoate_nr(query)
@@ -480,8 +502,9 @@ async def get_jurisprudence_facets(session: SintactSession, query: str) -> dict:
     """Filtrele disponibile pentru o cautare de jurisprudenta, cu etichete si numar
     de hotarari. Se apeleaza inainte de a filtra, ca filtrul sa fie ales din valori
     reale, nu ghicit."""
-    if not await session.ensure_authenticated():
-        return {"error": "Autentificare sintact.ro esuata.", "source": "sintact.ro"}
+    motiv = await _sesiune(session)
+    if motiv:
+        return {"error": motiv, "source": "sintact.ro"}
 
     body = {"documentMainType": "JURISPRUDENCE", "searchLang": "RO", "queryString": query,
             "pointInTime": _point_in_time(), "showMeAutoThesis": False, "limitedFacet": True}
@@ -516,9 +539,9 @@ async def search_jurisprudence(session: SintactSession, query: str, instanta=Non
     Etichetele primite (ex. instanta="Curtea de Apel", solutie="Admis") se rezolva in
     identificatorii numerici ceruti de API printr-un apel de narrowings pe aceeasi
     interogare, fiindca API-ul respinge etichetele text cu raspuns gol."""
-    if not await session.ensure_authenticated():
-        return {"results": [], "source": "sintact.ro",
-                "error": "Autentificare sintact.ro esuata. Verifica SINTACT_EMAIL/SINTACT_PASSWORD in .env."}
+    motiv = await _sesiune(session)
+    if motiv:
+        return {"results": [], "source": "sintact.ro", "error": motiv}
 
     body = _search_body(query, "jurisprudenta", max_results, start_from, sort_by_date)
 
@@ -613,17 +636,18 @@ async def _ccr_candidates(session: SintactSession, number, year) -> list:
     return out
 
 
-def _auth_failure(msg: str) -> dict:
-    return {"found": False, "auth_failed": True, "source": "sintact.ro",
-            "error": f"Autentificare sintact.ro esuata. {msg}"}
+def _auth_failure(motiv: str) -> dict:
+    """`auth_failed` distinge sesiunea cazuta de decizia pur si simplu negasita."""
+    return {"found": False, "auth_failed": True, "source": "sintact.ro", "error": motiv}
 
 
 async def search_ccr_decision(session: SintactSession, number, year) -> dict:
     """Cauta o decizie CCR pe sintact.ro. `auth_failed` distinge sesiunea cazuta de
     decizia pur si simplu negasita, ca apelantul sa stie daca merita sa treaca pe
     sursele de rezerva."""
-    if not await session.ensure_authenticated():
-        return _auth_failure("Verifica SINTACT_EMAIL/SINTACT_PASSWORD in .env.")
+    motiv = await _sesiune(session)
+    if motiv:
+        return _auth_failure(motiv)
     try:
         cands = await _ccr_candidates(session, number, year)
     except Exception as e:
@@ -689,9 +713,9 @@ async def verify_citation(session: SintactSession, query: str) -> dict:
     API-ul de 'direct hit' pe care platforma il foloseste pentru cautari exacte de
     genul 'Legea 190/2018' sau 'Decizia 22/2020'. Nu returneaza nro/versionId daca
     citarea nu se potriveste unui document real."""
-    if not await session.ensure_authenticated():
-        return {"status": "EROARE", "source": "sintact.ro",
-                "error": "Autentificare sintact.ro esuata. Verifica SINTACT_EMAIL/SINTACT_PASSWORD in .env."}
+    motiv = await _sesiune(session)
+    if motiv:
+        return {"status": "EROARE", "source": "sintact.ro", "error": motiv}
 
     try:
         data = await _direct_hit(session, query)
@@ -724,9 +748,9 @@ async def fetch_document(session: SintactSession, nro: int, version_id: int,
                           max_chars: int = 0) -> dict:
     """Descarca textul integral al unui document de pe sintact.ro: act normativ,
     decizie CCR/ICCJ sau hotarare a unei instante nationale (acelasi endpoint)."""
-    if not await session.ensure_authenticated():
-        return {"text": "", "title": "", "source": "sintact.ro",
-                "error": "Autentificare sintact.ro esuata."}
+    motiv = await _sesiune(session)
+    if motiv:
+        return {"text": "", "title": "", "source": "sintact.ro", "error": motiv}
 
     url = f"{ACT_URL}?nro={nro}&versionId={version_id}&translation=RO"
     try:

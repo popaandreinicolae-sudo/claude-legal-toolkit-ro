@@ -51,8 +51,19 @@ alin. (1) si (3) din Legea nr. 47/1992.
 
 **Cererea de sesizare a Curții** se depune la instanta in fata careia s-a ridicat
 excepția. Ea cere instantei sa constate indeplinite conditiile de sesizare si sa dispuna
-inaintarea excepției, prin incheierea prevazuta de art. 29 alin. (4). Motivarea de fond nu
-se rescrie aici, se face trimitere la excepția anexata.
+inaintarea excepției, prin incheierea prevazuta de art. 29 alin. (4).
+
+**Cererea isi poarta singura demonstratia, dar pe scurt.** Corectat de autor pe 1 august
+2026, pe cererea Transcarpat catre Judecătoria Buftea. Nu scrie „astfel cum se arata pe larg
+in cuprinsul excepției anexate” si nu lasa argumentul in anexa: instanta judeca
+admisibilitatea pe ce citeste in cerere, iar trimiterea la anexa il obliga pe judecator sa
+faca el munca. Duci argumentul pana la punctul in care se vede de ce textul e neclar si de ce
+conteaza in cauza, apoi te opresti. Dezvoltarea larga, cu jurisprudenta si drept comparat,
+ramane in excepție.
+
+**Legatura cu cauza se face pe fapta concreta**, nu numai pe neclaritatea in abstract. Spui ce
+anume s-a calificat gresit in dosar, cui i se aplica de fapt norma invocata de acuzare si de ce
+clientul nu intra acolo. Cat de mult se dezvolta depinde de caz.
 
 Ce nu are ce cauta in excepție: antet catre instanta, cererea ca judecatorul sa sesizeze
 Curtea, cererea ca judecatorul sa constate indeplinite conditiile de sesizare. Toate trei

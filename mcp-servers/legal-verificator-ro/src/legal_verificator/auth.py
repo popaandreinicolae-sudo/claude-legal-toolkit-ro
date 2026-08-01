@@ -41,6 +41,23 @@ _STATE_DIR = Path(__file__).resolve().parent.parent.parent / ".session"
 # credentialele reale din .env, iar autentificarea pica tacut, cu o parola inexistenta.
 _SABLOANE = {"your-login@example.com", "parola_ta", "password", "changeme", "email@example.com"}
 
+# Caderi de transport, adica cereri care nu au ajuns la server, dupa care are rost sa
+# reautentificam si sa reluam o data. Un 403 sau un 500 lipseste dinadins de aici: acela
+# e raspunsul real al platformei si nu se ascunde sub o reincercare.
+# Primele doua acopera pagina aruncata pe SSO de licenta cu o singura sesiune activa.
+# Restul acopera moartea paginii sau a browserului, adaugate pe 1 august 2026: mesajul
+# "Target page, context or browser has been closed" lipsea din lista, deci sintactul
+# ramanea cazut pe tot procesul in loc sa se ridice de la prima reluare.
+_MOTIVE_DE_RELUARE = (
+    "Failed to fetch",
+    "NetworkError",
+    "has been closed",
+    "Target closed",
+    "Target page, context or browser has been closed",
+    "Connection closed",
+    "Browser closed",
+)
+
 
 def _acreditare(*chei: str) -> str:
     """Prima valoare reala dintre variabilele date, sarind peste sabloane."""
@@ -84,15 +101,52 @@ class _IndacoSession:
         # Navigarile pe pagina partajata se serializeaza intre ele.
         self._nav_lock = asyncio.Lock()
 
+    def _pagina_vie(self) -> bool:
+        """Pagina din cache mai raspunde?
+
+        Pagina inchisa, context inchis si browser deconectat inseamna acelasi lucru
+        pentru apelantul de deasupra, cache-ul trebuie aruncat si refacut.
+        """
+        if self._page is None or self._context is None:
+            return False
+        try:
+            if self._page.is_closed():
+                return False
+        except Exception:
+            return False
+        return _browser is not None and _browser.is_connected()
+
+    async def _arunca_pagina(self):
+        """Arunca pagina moarta impreuna cu contextul ei.
+
+        Contextul ramas nesters tine un Chromium orfan, iar sapte astfel de procese
+        au contribuit la prabusirea din 1 august 2026. Steagul de autentificare cade
+        odata cu pagina: sesiunea logata traia in contextul tocmai inchis.
+        """
+        ctx, self._context, self._page = self._context, None, None
+        self._authenticated = False
+        if ctx is None:
+            return
+        try:
+            await ctx.close()
+        except Exception as e:
+            logger.debug("%s: contextul mort nu s-a inchis: %s", self.site_name, e)
+
     async def _ensure_page(self):
         # Doua apeluri de tool concurente pe o sesiune proaspata ar vedea amandoua
         # _page = None si ar deschide fiecare cate un context; unul ar ramane orfan,
         # cu Chromium-ul lui cu tot. Verificare dubla, inainte si dupa lock.
-        if self._page is not None:
+        if self._pagina_vie():
             return self._page
         async with self._page_lock:
-            if self._page is not None:
+            if self._pagina_vie():
                 return self._page
+            # Pagina moarta servita mai departe din cache a tinut sintactul cazut pe
+            # tot procesul serverului, cu apeluri care picau in 1 ms pe "Target page,
+            # context or browser has been closed" si nu se mai ridicau niciodata.
+            # Vazut pe 1 august 2026, cand modelul a coborat pe Indaco dupa patru
+            # incercari sintact, toate mute.
+            await self._arunca_pagina()
             browser = await _get_browser()
             _STATE_DIR.mkdir(exist_ok=True)
             state_path = _STATE_DIR / self.state_file
@@ -121,10 +175,12 @@ class _IndacoSession:
         raise NotImplementedError
 
     async def ensure_authenticated(self) -> bool:
-        if self._authenticated:
+        # Steagul singur nu ajunge. Cand pagina moare, sesiunea logata moare cu ea,
+        # iar un True intors din cache trimite apelantul catre un fetch mort.
+        if self._authenticated and self._pagina_vie():
             return True
         async with self._lock:
-            if self._authenticated:
+            if self._authenticated and self._pagina_vie():
                 return True
             page = await self._ensure_page()
             # Sesiunea persistenta poate fi inca valida.
@@ -177,9 +233,10 @@ class _IndacoSession:
         try:
             return await treaba(page)
         except Exception as e:
-            if "Failed to fetch" not in str(e) and "NetworkError" not in str(e):
+            if not any(motiv in str(e) for motiv in _MOTIVE_DE_RELUARE):
                 raise
-            logger.warning("%s: fetch cazut pe %s, reautentific si reiau", self.site_name, url)
+            logger.warning("%s: fetch cazut pe %s (%s), reautentific si reiau",
+                           self.site_name, url, e)
             self._authenticated = False
             if not await self.ensure_authenticated():
                 raise
