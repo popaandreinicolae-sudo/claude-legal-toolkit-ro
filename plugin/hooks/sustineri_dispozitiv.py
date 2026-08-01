@@ -180,15 +180,43 @@ async def _adu_toate_sintact(nevoi: list) -> dict:
             except Exception as e:
                 rezultat[cheie] = {"eroare": "%s: %s" % (type(e).__name__, e)}
     finally:
-        inchide = getattr(sesiune, "close", None)
-        if inchide:
+        await _inchide_tot(sesiune)
+    return rezultat
+
+
+async def _inchide_tot(sesiune) -> None:
+    """Inchide contextul SI browserul, apoi opreste Playwright.
+
+    `SintactSession.close()` inchide numai contextul. Browserul sta intr-un singleton
+    de modul, `auth._browser`, si supravietuieste; la iesirea procesului Python,
+    subprocesul Chromium ramane orfan. Pe 1 august 2026 se adunasera sapte
+    `chrome-headless-shell` din ziua precedenta. Tot de aici venea si zgomotul
+    "I/O operation on closed pipe" pe care il amutisem, adica simptomul, nu cauza.
+    """
+    inchide = getattr(sesiune, "close", None)
+    if inchide:
+        try:
+            res = inchide()
+            if asyncio.iscoroutine(res):
+                await res
+        except Exception:
+            pass
+    try:
+        import auth  # noqa: PLC0415
+        if getattr(auth, "_browser", None) is not None:
             try:
-                res = inchide()
-                if asyncio.iscoroutine(res):
-                    await res
+                await auth._browser.close()
             except Exception:
                 pass
-    return rezultat
+            auth._browser = None
+        if getattr(auth, "_playwright", None) is not None:
+            try:
+                await auth._playwright.stop()
+            except Exception:
+                pass
+            auth._playwright = None
+    except Exception:
+        pass
 
 
 async def _adu_toate_justro(nevoi: list) -> dict:

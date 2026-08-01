@@ -129,6 +129,31 @@ Monitorul Oficial al Romaniei, Partea I, nr. 245 din 24 martie 2023, par. 65.
 6. Analiza jurisprudentei cu ratie decidendi plus standard aplicat.
 7. Verificari finale prin MCP plus marcaj [VERIFICARE NECESARA] unde lipseste sursa.
 
+## Doua reguli care preced redactarea unei exceptii
+
+**Jurisprudenta e materia prima, nu ornament.** Se cauta INAINTE de a scrie primul
+paragraf, nu dupa ce actul e gata. Curtea judeca prin propria ei jurisprudenta; un act
+care nu i-o pune in fata ii cere sa construiasca singura standardul, ceea ce nu face. O
+teza sprijinita numai pe logica textelor e un memoriu de drept, nu o exceptie.
+
+Masurat pe exceptia din dosarul Transcarpat, august 2026: prima varianta avea 123 de
+paragrafe si ZERO trimiteri la decizii CCR, CJUE sau CEDO. Varianta a noua are 14, 6 si
+respectiv 3, iar articolele din Constitutie invocate au crescut de la 7 la 23.
+
+**Prioritara e argumentarea din perspectiva constitutionala, nu cea pe fond.** Fiecare
+element de fapt se termina intr-un articol din Constitutie numit. Cand un pasaj nu poate fi
+legat de un asemenea articol, nu se rescrie, se scoate. Faptele au doua locuri legitime,
+capitolul de admisibilitate, pentru legatura cu solutionarea cauzei ceruta de art. 29 alin.
+(1) din Legea nr. 47/1992, si demonstratia ca norma ingaduie lecturi opuse.
+
+Autorul a taiat din acelasi motiv un capitol intreg de 15 paragrafe, care analiza pozitie
+cu pozitie un tabel: arata ca norma e imprevizibila in aplicare, dar argumenta ca bunurile
+din speta nu intra in categoria incriminata, ceea ce apartine instantei de fond.
+
+Curtea nu elimina, nu inlatura si nu abroga. Ea CONSTATA NECONSTITUTIONALITATEA unei solutii
+legislative sau a unui continut normativ, iar efectele decurg din art. 147 alin. (1) si (4)
+din Constitutie.
+
 ## Unde se cauta fiecare fel de hotarare
 
 Fiecare instanta are sursa ei, si acolo se merge INTAI. Nu se cauta o hotarare CEDO in
