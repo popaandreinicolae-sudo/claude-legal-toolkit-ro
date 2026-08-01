@@ -8,7 +8,7 @@ Scoate paginile unui PDF scanat ca fisiere imagine, ca sa poata fi CITITE.
 De ce exista. Hotararile descarcate de pe portalul instantelor sunt aproape intotdeauna
 scanari, adica fotografii de pagina fara strat de text. Extragerea de text intoarce gol pe
 fiecare pagina, iar fisierele trec frecvent de 100 MB, peste limita citirii directe. Pe
-30 iulie 2026, sentinta de infiintare a unei asociatii statea intr-un fisier de 134 MB cu
+1 august 2026, sentinta de infiintare a unei asociatii statea intr-un fisier de 134 MB cu
 24 de pagini si zero caractere extractibile; numarul dosarului, al sentintei si al
 certificatului de inscriere nu se puteau afla altfel.
 

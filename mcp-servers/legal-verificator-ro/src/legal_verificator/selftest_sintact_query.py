@@ -2,7 +2,7 @@
 
     python selftest_sintact_query.py
 
-Pazeste reparatia din 30 iulie 2026. `queryString` se potriveste conjunctiv si tine
+Pazeste reparatia din 1 august 2026. `queryString` se potriveste conjunctiv si tine
 cont de vecinatatea cuvintelor, deci nu se comporta ca un motor web: fiecare termen
 in plus restrange, iar citarile trebuie scrise oficial, cu "nr." intre denumirea
 actului si numar.

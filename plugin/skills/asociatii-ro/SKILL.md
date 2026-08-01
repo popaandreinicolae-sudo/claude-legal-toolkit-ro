@@ -16,7 +16,7 @@ description: >
 # Documente pentru asociatii si fundatii
 
 Metoda cabinetului, construita pe actele proprii din treisprezece dosare de asociatii, cu
-temeiul legal verificat in Sintact pe 30 iulie 2026.
+temeiul legal verificat in Sintact pe 1 august 2026.
 
 ## Prima intrebare, inainte de orice redactare
 

@@ -20,7 +20,7 @@ FILTRAREA SE FACE SERVER-SIDE (corectie 2026-07-27):
   Legea 295/2004). Semnalul real de categorie este `documentProductionType`
   (COURT_JURISPRUDENCE / CNSC_JURISPRUDENCE / COMMON_ACT / MONOGRAPH_FRAGMENT).
 
-FORMA INTEROGARII CONTEAZA (corectie 2026-07-30):
+FORMA INTEROGARII CONTEAZA (corectie 2026-08-01):
   `queryString` se potriveste conjunctiv si tine cont de vecinatatea cuvintelor, deci
   nu se comporta ca o cautare de tip motor web. Fiecare termen in plus restrange, iar
   citarile trebuie scrise oficial, cu "nr." intre denumirea actului si numar. De aceea
@@ -118,7 +118,7 @@ def _norm(s: str) -> str:
 # aplicare a Legii nr. 295/2004"). O interogare fara "nr." rupe vecinatatea si pierde
 # tocmai actele conexe, cele pe care le cauti cel mai des.
 #
-# Masurat pe 30 iulie 2026, categoria legislatie:
+# Masurat pe 1 august 2026, categoria legislatie:
 #   "Legea 295/2004 privind regimul armelor"      ->    5 rezultate
 #   "Legea nr. 295/2004 privind regimul armelor"  ->  228 rezultate
 # Actul propriu-zis ramane pe primul loc in ambele, desi titlul lui din Sintact nu
@@ -318,7 +318,7 @@ async def search(session: SintactSession, query: str, category: str = None,
     iar rezultatele se unesc intercalat si deduplicat. Cele doua aduc seturi diferite:
     forma fara "nr." prinde titlul propriu al actului, cea cu "nr." prinde normele de
     aplicare, legile de modificare si restul familiei. Alegerea uneia singure pierde
-    tacut jumatate din raspuns, ceea ce s-a si intamplat pe 30 iulie 2026 cu normele
+    tacut jumatate din raspuns, ceea ce s-a si intamplat pe 1 august 2026 cu normele
     metodologice ale Legii nr. 295/2004.
 
     Daca niciuna nu intoarce nimic, se coboara treptele de rezerva, interogari tot mai
