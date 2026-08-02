@@ -254,14 +254,21 @@ LLM-urile evită „este/sunt" prin substituiri pompoase. Restaurează „este/a
 Înlocuiește:
 - „serves as" / „servește drept" → „este"
 - „stands as" / „se prezintă ca" → „este"
-- „represents" (când înseamnă „este") / „reprezintă" → „este"
-- „constitutes" / „constituie" → „este"
 - „functions as" / „funcționează ca" → „este"
 - „acts as" / „acționează ca" → „este"
 - „boasts" / „se laudă cu" → „are"
 - „features" / „prezintă" → „are"
 
-Excepție: păstrează aceste verbe DOAR când au sens specific (ex: „reprezintă" în sens politic).
+Excepție: păstrează aceste verbe DOAR când au sens specific.
+
+**„reprezintă" și „constituie" nu mai fac parte din această regulă.** Au fost scoase
+pe 30 iulie 2026, la cererea autorului, care le preferă explicit față de „este/sunt",
+ca registru academic al textului juridic. Echivalentele engleze, „represents" și
+„constitutes", au ieșit odată cu ele, ca lista să nu se contrazică de la o limbă la alta.
+Fișierul de față păstrase forma veche până pe 2 august 2026, deși stratul determinist și
+`skills/anti-ai-tone/SKILL.md` fuseseră corectate încă din iulie. Cum tool-ul MCP
+`get_skill_rules` citește chiar de aici, regulile servite în Claude Desktop cereau
+contrariul instrucțiunii autorului.
 
 ---
 
@@ -329,7 +336,6 @@ Lista neagră — română (interzis în exces, max 1 apariție per document):
 | de altfel | (omite) |
 | de remarcat că | (spune direct faptul) |
 | în acest context | (omite sau leagă direct) |
-| în absența | fără |
 | de natură | (omite) |
 | nu în ultimul rând | (omite) |
 | aspect fundamental | (numește aspectul concret) |
@@ -342,9 +348,14 @@ Lista neagră — română (interzis în exces, max 1 apariție per document):
 | nu este întâmplător că | (omite) |
 | holistic / holistică | integrată / cuprinzătoare |
 | prin urmare | așadar / deci |
-| în consecință | de aceea / deci |
 | per ansamblu | în general |
 | pe parcurs | în timp / treptat |
+
+**„în absența" și „în consecință" nu mai fac parte din această listă.** Le-am scos
+pe 2 august 2026, la cererea autorului: le preferă explicit față de „fără" și față de
+„de aceea / deci", ca registru al textului juridic, la fel ca „reprezintă" și
+„constituie" la REGULA 12. „Prin urmare" rămâne, fiindcă autorul a cerut doar cele două
+de mai sus, iar lista se scurtează la cerere, nu prin analogie.
 
 Lista neagră — engleză (interzis):
 

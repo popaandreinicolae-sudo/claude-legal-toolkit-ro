@@ -54,7 +54,15 @@ AI_WORDS_RO = [
     'nu putem ignora', 'nu este intamplator', 'nu in ultimul rand',
     'este graitor', 'este elocvent', 'este emblematic',
     'aspect fundamental', 'dimensiune esentiala',
-    'in acest context', 'de altfel', 'in consecinta', 'prin urmare',
+    # Doua formulari au iesit de aici pe 2 august 2026, la cererea autorului, care le
+    # prefera explicit in registrul lui juridic, in consecinta si in absenta. A doua
+    # statea doar in tabelul din skill, nu si in lista asta, si a fost scoasa si de
+    # acolo. Prin urmare ramane, fiindca autorul a cerut doua formulari, nu categoria.
+    #
+    # Comentariul e scris fara ghilimele intentionat. contradictii.py extrage termenii
+    # dintre ghilimele si le citeste polaritatea din fraza, iar o explicatie negativa
+    # despre un termen pastrat arata acolo ca o contradictie cu textul injectat.
+    'in acest context', 'de altfel', 'prin urmare',
     'in plus', 'totodata', 'de asemenea', 'mai mult decat atat',
     'pe de o parte', 'pe de alta parte', 'in primul rand',
     'in al doilea rand', 'in al treilea rand', 'cu toate acestea',
@@ -121,7 +129,10 @@ MECHANICAL_CONJUNCTIONS_RO = [
     'in primul rand', 'in al doilea rand', 'in al treilea rand',
     'pe de o parte', 'pe de alta parte', 'cu toate acestea',
     'mai mult decat atat', 'in plus', 'totodata', 'de asemenea',
-    'prin urmare', 'in consecinta', 'de altfel', 'in acest context',
+    # Aceeasi formulare a iesit si de aici pe 2 august 2026. Era numarata de doua ori,
+    # o data ca vocabular AI si o data ca legatura mecanica, deci o singura stergere
+    # ar fi lasat penalizarea in picioare.
+    'prin urmare', 'de altfel', 'in acest context',
 ]
 
 MECHANICAL_CONJUNCTIONS_EN = [

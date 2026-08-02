@@ -38,7 +38,7 @@ Citeste textul cu Read si verifica MANUAL aspectele pe care scriptul nu le poate
 2. Negative parallelism subtil ("Nu un X. Nu un Y. O Z.")
 3. Triade obsesive ("trei factori", "trei dimensiuni", "trei lentile")
 4. Hedging contextual ("ar putea fi argumentat ca", "se poate sustine ca")
-5. Copula avoidance ("X reprezinta/constituie/functioneaza ca Y" cand X este efectiv Y)
+5. Copula avoidance ("X functioneaza ca / serveste drept / se prezinta ca Y" cand X este efectiv Y). "reprezinta" si "constituie" raman registrul juridic al autorului si NU se semnaleaza, la fel "in absenta" si "in consecinta"
 6. False balance reflex (paragraf "pe de alta parte" la concluzie sustinuta de date)
 7. Truisme de deschidere paragraf ("In contextul actual", "In era digitala")
 8. Inchideri mecanice ("In concluzie", "Implicatiile sunt vaste", "Doar timpul va spune")

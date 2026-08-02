@@ -342,7 +342,6 @@ Lista neagră — română (interzis în exces, max 1 apariție per document):
 | de altfel | (omite) |
 | de remarcat că | (spune direct faptul) |
 | în acest context | (omite sau leagă direct) |
-| în absența | fără |
 | de natură | (omite) |
 | nu în ultimul rând | (omite) |
 | aspect fundamental | (numește aspectul concret) |
@@ -355,9 +354,19 @@ Lista neagră — română (interzis în exces, max 1 apariție per document):
 | nu este întâmplător că | (omite) |
 | holistic / holistică | integrată / cuprinzătoare |
 | prin urmare | așadar / deci |
-| în consecință | de aceea / deci |
 | per ansamblu | în general |
 | pe parcurs | în timp / treptat |
+
+**„în absența" și „în consecință" nu mai fac parte din această listă.** Le-am scos
+pe 2 august 2026, la cererea autorului: le preferă explicit față de „fără" și față de
+„de aceea / deci", ca registru al textului juridic, la fel ca „reprezintă" și
+„constituie" la REGULA 12. „În consecință" era numărată de două ori în stratul
+determinist, o dată în vocabularul AI și o dată la conjuncțiile mecanice, iar ambele
+intrări au fost scoase. „În absența" stătea doar în tabelul de mai sus, iar în stratul
+determinist nu ajunsese.
+
+„Prin urmare" rămâne pe listă. Autorul a cerut doar cele două de mai sus, iar lista
+se scurtează la cerere, nu prin analogie.
 
 Lista neagră — engleză (interzis):
 
