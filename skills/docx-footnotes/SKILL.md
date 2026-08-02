@@ -367,6 +367,22 @@ stilul de casa se lasa deoparte si se aplica Times New Roman 12 pt corp, 10 pt n
 2 cm dreapta. Citarile se fac dupa skill-ul `ub-drept-citation`. Treci pe formatul asta
 numai cand documentul chiar merge la o revista sau la facultate, nu implicit.
 
+## Punctul de plecare e documentul autorului, nu ultima ta iesire
+
+Cand autorul a lucrat in versiunea livrata si cere alta, cu adaugiri, construiesti peste
+documentul LUI de pe disc. Nu regenerezi din sursa.
+
+Cerut pe 3 august 2026. Scripturile reconstruiesc de fiecare data din documentul original, deci
+o versiune noua generata asa arunca tacut tot ce a scris el intre timp. Pierderea nu se vede,
+fiindca documentul iese complet si corect din punctul tau de vedere.
+
+Inainte de a genera, uita-te care fisier e cel mai recent si daca poarta urmele lui, adica data
+de modificare de dupa livrarea ta sau `last_modified_by` schimbat. Daca da, deschide-l pe acela.
+La dubiu, intreaba care e documentul de referinta.
+
+Redline-ul se face fata de documentul de la care ai pornit, adica fata de al lui, ca sa vada
+exact ce ai adaugat peste munca lui.
+
 ## Orice versiune noua pleaca insotita de redline
 
 Cand livrezi v2 a unui document pe care l-ai livrat deja, produci si fisierul cu modificari
