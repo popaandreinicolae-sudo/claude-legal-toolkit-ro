@@ -159,9 +159,21 @@ def _tinte_din_comanda(cmd: str) -> list:
     return tinte
 
 
+def _fara_cod_inline(cmd: str) -> str:
+    """Scoate incarcatura unui `python -c "..."`, ca sintaxa limbajului sa nu fie citita drept
+    comanda de shell.
+
+    Pe 3 august 2026 hook-ul a oprit o comanda nevinovata, fiindca scriptul de o linie
+    continea `del corp[i:i+2]`, adica instructiunea Python, nu stergerea unui fisier. Excluderea
+    nu deschide nicio portita: o stergere facuta din interiorul unui script nu se vedea oricum
+    de aici, limita fiind scrisa in capul fisierului."""
+    return re.sub(r"-c\s+(\"(?:[^\"\\]|\\.)*\"|'(?:[^'\\]|\\.)*')", " -c CODE ", cmd)
+
+
 def _are_verb_de_stergere(cmd: str) -> bool:
     """Verbul de stergere se cauta pe pozitie de comanda, la inceput de segment sau dupa o
     conducta, ca sa nu se confunde cu un nume de fisier care contine 'rm' sau 'del'."""
+    cmd = _fara_cod_inline(cmd)
     for bucata in re.split(r"&&|\|\||;|\||\n|\{", cmd):
         parti = bucata.strip().split()
         if parti and os.path.basename(parti[0]) in COMENZI_DE_STERGERE:
