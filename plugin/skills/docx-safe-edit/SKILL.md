@@ -197,3 +197,23 @@ si l-ar fi pus sa refaca trei documente degeaba.
 Verificarea prin numarare nu tine loc de citire. In aceeasi zi, numararea aparitiilor unor nume
 intr-un statut a dat cifra asteptata, desi doua dintre ele stateau in articolul gresit. Se
 verifica POZITIA, nu frecventa.
+
+## Dupa ce scrii, reciteste ce ai scris. Si enumerarile se verifica in documentul-tinta
+
+Doua verificari obligatorii, amandoua nascute din esecuri reale pe 3 august 2026.
+
+**Recitirea propriei livrari.** Raportul uneltei confirma cantitatea, nu asezarea. Cinci
+paragrafe inserate cu `insert_after` pe acelasi paragraf au iesit in ordinea data, nu
+rasturnate cum presupusesem, deci literele au ajuns d, c, b, a, iar fraza introductiva la
+sfarsit. Numarul de revizii era corect. Dupa orice scriere, reciteste documentul produs si
+verifica ORDINEA si ASEZAREA, nu doar ca operatiunea a reusit.
+
+**Enumerarile se verifica in documentul pe care il descriu.** Cand un act enumera modificarile
+aduse altui act, fiecare punct se confrunta cu documentul-tinta, deschis de pe disc. In aceeasi
+zi, hotararea adunarii generale enumera o modificare a art. 18 privind ocuparea locului vacant,
+text care nu mai exista in statutul final: autorul il stersese si renumerotase alineatele, iar
+enumerarea mea descria versiunea MEA a statutului, nu pe a lui.
+
+Regula practica: nu scrie niciodata despre continutul altui document din ce ai produs tu.
+Deschide-l, citeste articolul invocat, apoi scrie. Vezi si regula de a citi documentul inainte
+de a vorbi despre el.
