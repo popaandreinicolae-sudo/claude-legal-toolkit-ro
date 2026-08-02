@@ -174,3 +174,26 @@ raport, nu trece verificarea ca facuta.
   Regula asta spune CAT text intra in marcaj. Unde se pun marcajele spune regula 2 din
   docx-track-changes-review: in jurul run-ului din mijloc, niciodata inauntrul lui. Cele
   doua se completeaza; spargi run-ul, apoi inlocuiesti intreg run-ul din mijloc.
+
+## Citeste documentul inainte sa vorbesti despre el
+
+Orice afirmatie despre continutul, structura, numerotarea sau semnatarii unui document se face
+DUPA deschiderea fisierului de pe disc, in forma lui de acum. Niciodata din ce a generat
+scriptul tau, niciodata din ce s-a discutat mai devreme in conversatie.
+
+Cand documentul are mai multe versiuni, uita-te intai ce exista pe disc, cu data si marimea
+fiecareia: si lista versiunilor se schimba intre timp, fiindca autorul sterge, redenumeste si
+produce variante proprii.
+
+Cand nu poti citi fisierul, spune ca vorbesti din memorie si marcheaza afirmatia ca
+neverificata.
+
+Cerut pe 3 august 2026. Autorul fusese avertizat ca hotararea adunarii generale a unei
+asociatii enumera modificari de statut ramase in urma si ca trebuie refacuta, impreuna cu alte
+doua documente. Deschisa in sfarsit, hotararea de pe disc avea o singura fraza, scrisa de el,
+care trimitea la statutul anexat, deci nu putea ramane in urma. Avertismentul era fara obiect
+si l-ar fi pus sa refaca trei documente degeaba.
+
+Verificarea prin numarare nu tine loc de citire. In aceeasi zi, numararea aparitiilor unor nume
+intr-un statut a dat cifra asteptata, desi doua dintre ele stateau in articolul gresit. Se
+verifica POZITIA, nu frecventa.
