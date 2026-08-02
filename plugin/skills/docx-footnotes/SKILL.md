@@ -367,6 +367,21 @@ stilul de casa se lasa deoparte si se aplica Times New Roman 12 pt corp, 10 pt n
 2 cm dreapta. Citarile se fac dupa skill-ul `ub-drept-citation`. Treci pe formatul asta
 numai cand documentul chiar merge la o revista sau la facultate, nu implicit.
 
+## Livrarile vechi nu se sterg, nici cele proprii
+
+Cand regenerezi un set de documente, din orice motiv, NU stergi versiunea dinainte. O lasi pe
+loc si scrii setul nou alaturi, cu nume nou sau cu sufix `_v2`.
+
+Pe 1 august 2026 am generat noua documente pentru un dosar de asociatie, le-am datat gresit,
+le-am regenerat cu data buna si le-am sters pe cele vechi, ca sa nu ramana doua seturi in
+folder. Autorul lucrase in ele intre timp si nu s-a mai putut recupera nimic. Stergerea din
+linia de comanda nu trece prin cosul de gunoi.
+
+Doua seturi in folder deranjeaza mai putin decat un set pierdut, iar alegerea intre ele
+apartine autorului. Hook-ul `fara_suprascriere.py` opreste acum verbele de stergere care ating
+documente sau dosarele lui, dar o stergere facuta din interiorul unui script Python nu se vede
+de acolo, deci regula ramane si aici.
+
 ## Unde scrii fisierul
 
 Cand lucrezi intr-un mediu izolat, cum e Cowork, fisierele scrise in directorul de
