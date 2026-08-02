@@ -367,6 +367,25 @@ stilul de casa se lasa deoparte si se aplica Times New Roman 12 pt corp, 10 pt n
 2 cm dreapta. Citarile se fac dupa skill-ul `ub-drept-citation`. Treci pe formatul asta
 numai cand documentul chiar merge la o revista sau la facultate, nu implicit.
 
+## Orice versiune noua pleaca insotita de redline
+
+Cand livrezi v2 a unui document pe care l-ai livrat deja, produci si fisierul cu modificari
+urmarite intre cele doua versiuni. Fara exceptie, si inclusiv cand ambele versiuni sunt scrise
+de tine.
+
+Cerut de autor pe 3 august 2026, dupa trei seturi succesive de documente livrate pentru
+acelasi dosar, din care niciunul nu arata ce se schimbase fata de cel dinainte. Un act de 30 de
+pagini in care s-au schimbat doua alineate arata la fel cu unul in care s-au schimbat treizeci.
+Diferenta o vede numai redline-ul, iar fara el autorul reciteste tot documentul ca sa afle ce
+ai atins.
+
+Nu construiesti lista de editari: unealta compara singura doua fisiere.
+
+    python ~/.claude/skills/docx-track-changes/scripts/docx_track_changes.py apply \
+        --input vechi.docx --revised nou.docx --output "nou_TRACK CHANGES.docx"
+
+Apoi `verify` pe rezultat, ca de obicei. Autorul reviziilor ramane marca, „AMZ Law Office”.
+
 ## Livrarile vechi nu se sterg, nici cele proprii
 
 Cand regenerezi un set de documente, din orice motiv, NU stergi versiunea dinainte. O lasi pe

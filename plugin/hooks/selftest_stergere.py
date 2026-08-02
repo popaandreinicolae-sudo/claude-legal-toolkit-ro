@@ -30,6 +30,8 @@ CAZURI = [
      'Get-ChildItem "D:\\Clienti\\X" -Filter *.docx', False),
     ("cuvant care contine rm, nu e verb, trece", "Bash",
      'echo "termen" > /tmp/x.txt', False),
+    ("del din sintaxa Python intr-un python -c, nu e stergere", "Bash",
+     'python -c "corp = [1,2,3]; del corp[0]; print(corp)" && echo gata "D:\Clienti\X\a.docx"', False),
     ("copiere peste un act existent, oprita de vechea regula", "PowerShell",
      'Copy-Item nou.docx "D:\\Clienti\\X\\act.docx"', None),
 ]
