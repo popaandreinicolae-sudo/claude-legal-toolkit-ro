@@ -10,7 +10,9 @@ description: >
   "rezervare denumire", "cerere de acordare a personalitatii juridice", "inscriere in
   Registrul asociatiilor si fundatiilor", "certificat de identitate sportiva", "CIS",
   "Registrul sportiv", "aviz ANS", "afiliere la federatie", "licenta de gestionar fond
-  cinegetic". NU acopera societatile comerciale, care tin de Legea nr. 31/1990.
+  cinegetic". Acopera si depunerea dosarului, deci "in cate exemplare printez", "cine
+  semneaza", "taxa de timbru", "cazier fiscal", "CD-ul pentru instanta", "ce ii scriu
+  clientului sa faca". NU acopera societatile comerciale, care tin de Legea nr. 31/1990.
 ---
 
 # Documente pentru asociatii si fundatii
@@ -100,6 +102,9 @@ drepturile de membru.
 5. Redacteaza in ordinea din lista, nu in ordinea in care iti vin in minte.
 6. Treci prin `references/capcane.md` inainte de livrare.
 7. Ruleaza poarta de calitate obisnuita, quality-gate si verificare-citari-gate.
+8. Deschide `references/depunere-si-instructiuni-client.md` si pregateste depunerea, adica
+   exemplarele, semnaturile, taxa, CD-ul si mailul catre client. Actele redactate nu inseamna
+   dosar depus, iar formalitatile astea se greseau la fiecare dosar pana au fost scrise.
 
 ## Datele care se cer intotdeauna
 
