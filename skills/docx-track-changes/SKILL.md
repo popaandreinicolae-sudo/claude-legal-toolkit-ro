@@ -110,6 +110,27 @@ util pentru a redacta lista de modificari care insoteste livrabilul. Tot el semn
 in `redline_prea_larg`, marcajele mai late decat modificarea; `--strict` face din ele un
 esec, deci verificarea intra intr-un quality gate.
 
+## Paragrafele noi intr-un act care e deja in forma casei
+
+Paragraful adaugat intr-un act al casei poarta forma casei. Stilul `Body cu nr de
+paragraf`, numerotarea din `w:numPr` pe fluxul de corp al documentului, indentarea
+`w:ind w:left="0" w:hanging="720"`, si rand gol inaintea oricarui titlu nou.
+
+`doc.add_paragraph(text)` scrie pe `Normal`, cu alineat de prima linie si fara numar,
+adica exact profilul dinaintea formei casei. Documentul iese amestecat, cu o parte
+numerotata si una nu, iar cititorul crede ca regula s-a pierdut din nou.
+
+Pe 4 august 2026, la 13:34, un act cu antet, A4 si 51 de paragrafe numerotate a primit
+asa treisprezece paragrafe noi despre corespondenta partilor. Sectiunea a iesit cu
+alineat de 1,27 cm si fara numere, in mijlocul unui act corect. Regulile de forma
+acopereau scrierea actului din sablon, nu si adaugarea intr-unul care exista deja, iar
+nimic nu se uita la rezultat.
+
+Dupa fiecare adaugare, cheama `docx_verifica_pachet` din serverul `persona-adrian-zamfir`
+si citeste campul `forma`. Cand `corp_adaugat_altfel` e mai mare ca zero langa un
+`corp_in_forma_casei` mai mare ca zero, documentul e amestecat si trebuie indreptat
+inainte de livrare.
+
 ## Note de subsol noi
 
 `docx_track_changes.py` modifica textul notelor existente, prin `"part": "footnotes"`,
