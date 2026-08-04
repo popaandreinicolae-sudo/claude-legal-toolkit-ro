@@ -14,6 +14,19 @@ Cand un hook contrazice o sursa primara confirmata, sursa primara castiga. Un se
 
 Hook-urile scriu doar avertismente (stderr), nu modifica niciun fisier si nu blocheaza scrierea. Marcheaza candidati de verificat. Modelul nu „corecteaza" pe baza unui hook fara a verifica intai prin sursa, ca sa nu strice o citare corecta pe baza unui fals-pozitiv.
 
+Regula priveste hook-urile factuale, unde un fals-pozitiv sterge o citare buna. Hook-urile de procedura ies cu 2, ca mesajul sa ajunga la model, nu doar in ecranul autorului, fiindca acolo un fals-pozitiv costa un fisier in plus si nimic altceva. Singurul de acest fel azi este redline_obligatoriu.py, care semnaleaza versiunea de .docx plecata fara documentul cu modificari urmarite. Nici el nu modifica nimic si nu poate desface scrierea deja facuta; efectul lui e ca modelul afla, cat mai e in sarcina, ca datoreaza un redline.
+
+## Regula redline-ului, pe patru straturi
+
+Regula autorului: orice versiune noua vine insotita de redline, fara exceptie, inclusiv intre versiunile succesive produse de mine. Scrisa in caiet pe 2 august 2026, a fost incalcata a doua zi la 19:54, fiindca traia numai ca text si actul se facuse in Claude Desktop, unde caietul nu ajunge. De aceea sta acum in patru locuri, fiecare acoperind ce scapa celuilalt:
+
+- `redline_obligatoriu.py`, hook PostToolUse pe Bash, PowerShell si Write, semnaleaza versiunea plecata fara redline, inclusiv livrarile facute prin copiere. Comutator: REDLINE_OBLIGATORIU_OFF=1.
+- `skills/docx-footnotes/scripts/redline_automat.py`, chemat de scrie_document.py dupa fiecare salvare, produce redline-ul singur. Lucreaza si cand nimeni nu a citit nicio instructiune. Steag de ocolire: `--fara-redline`.
+- `server/poarta.py` din serverul persona inchide uneltele de redactare pana cand regulile autorului ajung in conversatie, prin persona_activeaza sau reguli_de_lucru. Refuzul duce el insusi indexul regulilor. Comutator: PERSONA_POARTA_OFF=1.
+- `docx_redline` din acelasi server da mijlocul de executare pe suprafata unde scripturile de skill nu ruleaza. Fara el regula ar ramane un indemn in Claude Desktop.
+
+Proba: `python hooks/selftest_redline.py` si `python tools/selftest.py` din depozitul personei.
+
 ## Doua viteze, ca sa nu incetineasca Cowork-ul
 
 - Hook-uri PostToolUse (la fiecare scriere), mod LOCAL instant, fara retea: citation_guard, phantom_source_guard, numeric_consistency_guard. Folosesc doar reguli locale (reference_names.json, regex, cache). ~0,2s fiecare.
