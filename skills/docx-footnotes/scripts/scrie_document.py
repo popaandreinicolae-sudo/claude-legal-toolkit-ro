@@ -31,6 +31,7 @@ Formatul continutului
     {"text": "Termenul de arma interzisa nu este definit.", "bold": ["arma interzisa"]},
     {"tip": "marcator", "text": "element de enumerare, primeste liniuta"},
     {"tip": "titlu", "text": "I. IN FAPT"},
+    {"tip": "titlu_centrat", "text": "MOTIVE"},
     {"tip": "citat", "text": "„Art. 29"},
     {"tip": "citat", "text": "(1) Curtea Constitutionala decide asupra exceptiilor ..."},
     {"tip": "citat", "text": "(...)"},
@@ -61,6 +62,7 @@ SABLON = AICI.parent / "assets" / "sablon-casa.docx"
 
 sys.path.insert(0, str(AICI))
 from cale_libera import alege, adauga_optiune
+import redline_automat  # noqa: E402  versiunea noua pleaca insotita de redline
 import repara_pachet  # noqa: E402  spatiile de nume se verifica dupa fiecare salvare
 
 # Masurat pe actele proprii. Corpul se numeroteaza [1], [2], [3], cu paranteze drepte,
@@ -177,6 +179,28 @@ def _spatiere(paragraf, inainte: int, dupa: int, centrat: bool = False):
         _pune_in_pPr(ppr, jc, "jc")
 
 
+def _rand_gol(doc):
+    """Randul gol dinaintea titlului, ca paragraf adevarat.
+
+    Regula autorului, scrisa pe 1 august 2026 si reluata pe 4 august: titlul principal
+    primeste rand gol si inainte, si dupa, celelalte titluri numai inainte.
+
+    `w:spacing w:before` nu tine locul randului gol. Cele doua se aduna, iar 160 de twips
+    inseamna 8 puncte, adica jumatate de rand la interlinia de 14 puncte a casei. Actele
+    proprii au amandoua: in cererea de sesizare CCR din 1 august 2026, fiecare titlu are
+    deasupra un paragraf gol PE LANGA `w:before="160"`.
+
+    De ce s-a pierdut. Regula a fost tradusa o data intr-o constanta masurata pe corpus,
+    iar masuratoarea nu putea vedea randul gol: orice unealta care numara paragrafe le
+    sare pe cele fara text. Constanta a ramas corecta si regula, neaplicata.
+    """
+    if not doc.paragraphs or not doc.paragraphs[-1].text.strip():
+        return None
+    p = doc.add_paragraph(style=STIL_SIMPLU)
+    _aliniaza_la_margine(p)
+    return p
+
+
 def _aliniaza_la_margine(paragraf):
     """Scrie `w:ind w:left=0` pe paragraf, ca textul sa porneasca de la marginea din
     stanga, aliniat cu corpul actului. Vezi INDENT_SIMPLU pentru de ce nu ajunge stilul."""
@@ -291,7 +315,11 @@ def _bloc(doc, elemente, stil, *, bold_implicit=False, num_id=None):
         tip = item.get("tip", "")
         stil_efectiv = stil
         numerotare = num_id
-        e_titlu = tip == "titlu"
+        # „MOTIVE" se aseaza centrat in mijlocul actului, ca si titlul principal, si
+        # desparte petitele de argumentatie. Masurat pe actele proprii: in notele scrise
+        # din 3 iulie 2026 amandoua stau centrate, pe albastru.
+        e_titlu = tip in ("titlu", "titlu_centrat")
+        centrat = tip == "titlu_centrat"
         e_citat = tip == "citat"
         if tip == "marcator":
             numerotare = NUM_MARCATOR
@@ -302,6 +330,9 @@ def _bloc(doc, elemente, stil, *, bold_implicit=False, num_id=None):
             # Citatul iese din fluxul numerotat al corpului: nu e argumentul nostru.
             stil_efectiv = STIL_SIMPLU
             numerotare = None
+
+        if e_titlu:
+            _rand_gol(doc)
 
         try:
             p = doc.add_paragraph(style=stil_efectiv)
@@ -316,7 +347,11 @@ def _bloc(doc, elemente, stil, *, bold_implicit=False, num_id=None):
             _indenteaza_citat(p)
         if e_titlu:
             _culoare_titlu(p)
-            _spatiere(p, *SPATIU_TITLU_SECTIUNE)
+            _spatiere(p, *(SPATIU_TITLU_PRINCIPAL if centrat else SPATIU_TITLU_SECTIUNE),
+                      centrat=centrat)
+            if centrat:
+                # Titlul centrat respira de amandoua partile, ca cel principal.
+                _rand_gol(doc)
         if numerotare is not None:
             # Numai corpul primeste indentarea masurata. Enumerarile cu liniuta stau in
             # interiorul paragrafului si isi pastreaza retragerea din definitia fluxului.
@@ -345,6 +380,8 @@ def construieste(spec: dict, autor: str):
     list(_bloc(doc, spec.get("parti"), STIL_PARTI, num_id=NUM_FARA))
 
     if spec.get("titlu"):
+        # Titlul principal primeste rand gol si inainte, si dupa. Vezi _rand_gol.
+        _rand_gol(doc)
         try:
             p = doc.add_paragraph(style=STIL_TITLU)
         except KeyError:
@@ -352,6 +389,7 @@ def construieste(spec: dict, autor: str):
         p.add_run(spec["titlu"]).bold = True
         _culoare_titlu(p)
         _spatiere(p, *SPATIU_TITLU_PRINCIPAL, centrat=True)
+        _rand_gol(doc)
 
     list(_bloc(doc, spec.get("obiect"), STIL_SIMPLU, bold_implicit=True))
 
@@ -376,6 +414,7 @@ def main(argv=None) -> int:
     ap.add_argument("--continut", required=True, type=Path, help="fisier JSON cu continutul")
     ap.add_argument("--output", required=True, type=Path)
     adauga_optiune(ap)
+    redline_automat.adauga_optiune(ap)
     ap.add_argument("--autor", default="Adrian Zamfir")
     args = ap.parse_args(argv)
 
@@ -389,13 +428,22 @@ def main(argv=None) -> int:
     # fisierul e XML valid. Serializarea poate reintroduce defectul, deci se verifica
     # dupa fiecare salvare, nu doar cand sablonul e suspect.
     repara_pachet.asigura(args.output)
+    # Regula lui: orice versiune noua vine insotita de redline, fara exceptie. Cand
+    # documentul se aseaza langa unul din aceeasi familie, comparatia se face aici,
+    # fiindca aici e singurul loc care stie sigur ca s-a scris o versiune noua.
+    redline = None
+    if not args.fara_redline:
+        redline = redline_automat.produ(args.output)
 
     cu_text = sum(1 for p in doc.paragraphs if p.text.strip())
     cu_bold = sum(1 for p in doc.paragraphs if p.text.strip() and any(r.bold for r in p.runs))
-    print(f"{args.output}")
+    print(f"ACTUL, de deschis si de depus: {args.output}")
     print(f"  paragrafe cu text: {cu_text}, din care numerotate automat: {numarate}")
     print(f"  paragrafe cu bold: {cu_bold} ({100 * cu_bold // max(cu_text, 1)}%), "
           f"in actele proprii 53%")
+    if redline:
+        print(f"  redline fata de {Path(redline['vechi']).name}: {redline['redline']}")
+        print(f"  {redline['nota']}")
     print(f"  verifica cu: python ../../docx-livrare-check/scripts/check_livrare.py "
           f"\"{args.output}\"")
     return 0

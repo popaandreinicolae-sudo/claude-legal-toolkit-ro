@@ -65,6 +65,33 @@ pentru enumerari si `{"tip": "titlu"}` pentru titluri de sectiune.
 Asa nu mai poti gresi stilul, numerotarea sau bold-ul. Tu scrii dreptul, scriptul pune
 forma. Sectiunea urmatoare ramane pentru cazurile in care scrii direct cu python-docx.
 
+## In Claude Desktop, prin serverul MCP
+
+Scripturile de skill nu ruleaza in Desktop, iar mediul izolat in care se executa codul nu
+vede `~/.claude/skills`, deci nici sablonul. Lipsa nu se simte. python-docx porneste de la
+propriul document gol, iar corpul se poate reproduce din parametri masurati, Georgia 10,
+alineat 1,27 cm, marginile la locul lor, deci actul iese convingator si totusi fara antet,
+fara subsol, fara `w:titlePg`, cu toate paragrafele pe `Normal` si pe format US Letter.
+
+Pe 3 august 2026 au plecat asa notele scrise pentru fondul unei ordonante presedintiale.
+Nimic nu a strigat: documentul se deschidea in Word, trecea verificarea de pachet si arata
+ca un act al casei pana la a doua privire.
+
+Acolo actul se scrie prin serverul MCP `persona-adrian-zamfir`, care ruleaza pe gazda,
+langa sablon:
+
+    docx_scrie_act(continut=<acelasi JSON>, cale="D:\\...\\act.docx")
+
+Instrumentul face ce face `scrie_document.py`, alege calea libera, aplica stilurile,
+repara spatiile de nume si produce redline-ul fata de versiunea precedenta. In plus
+citeste fisierul inapoi de pe disc si spune ce a iesit, antet, subsol, format de pagina,
+cate paragrafe poarta numerotare automata. Verdictul `NO-GO` inseamna ca lipseste ceva din
+forma casei.
+
+Acelasi raport pleaca si in campul `forma` al lui `docx_verifica_pachet`, pentru orice
+.docx, oricum ar fi fost facut. Verdictul verificarii nu se schimba, fiindca un act intern
+iese legitim fara antet, dar lipsa se vede acolo unde trece oricum orice livrare.
+
 ## Cum se scrie continutul, stilurile de aplicat
 
 Sablonul aduce recipientul. Daca scrii apoi cu `add_paragraph(text)` si
@@ -202,6 +229,20 @@ formele dominante. Toate stau in `SPATIU_TITLU_PRINCIPAL` si `SPATIU_TITLU_SECTI
 
 Spatierea si alinierea se scriu direct pe paragraf, nu in definitia stilului, fiindca
 asa arata actele proprii: `Heading1` nu poarta nici spatiere, nici aliniere.
+
+**`w:before` nu tine locul randului gol. Sunt doua lucruri, si se cer amandoua.** Titlul
+principal are deasupra si dedesubt cate un PARAGRAF GOL adevarat, celelalte titluri numai
+deasupra, pe langa `w:before="160"`. Se vede in cererea de sesizare CCR din 1 august 2026,
+unde fiecare `Heading1` are deasupra un paragraf fara text; la fel in notele scrise din 3
+iulie 2026, unde si titlul centrat are rand gol de amandoua partile.
+
+Regula a stat scrisa in trei locuri si tot nu s-a aplicat pana pe 4 august 2026. Fusese
+tradusa o singura data intr-o constanta masurata pe corpus, iar masuratoarea nu avea cum sa
+vada randul gol: orice unealta care numara paragrafe le sare pe cele fara text. Constanta a
+ramas corecta, `w:before="160"`, adica 8 puncte, jumatate de rand la interlinia de 14, si
+titlul a iesit lipit de paragraful de deasupra. Generatorul insereaza acum randul gol prin
+`_rand_gol`, iar `_control_forma` din serverul persona verifica pe documentul salvat ca
+fiecare titlu il are, deci abaterea nu mai trece tacut.
 
 `keepNext` nu se pune. In actele proprii nu apare pe niciun paragraf, deci nu se
 introduce ca imbunatatire generala.
@@ -342,6 +383,33 @@ cheama instrumentul `docx_verifica_pachet` din serverul MCP `persona-adrian-zamf
 
 Regula: orice .docx produs programatic trece prin verificarea de spatii de nume inainte
 de a fi trimis. Nicio alta verificare nu prinde defectul acesta.
+
+## Redline-ul pleaca odata cu versiunea noua
+
+Regula autorului: orice versiune noua vine insotita de documentul cu modificari
+urmarite, fara exceptie, si intre propriile mele versiuni succesive, nu doar pe actele
+primite de la el. Un act de 30 de pagini in care s-au schimbat doua alineate arata
+identic cu unul in care s-au schimbat treizeci.
+
+`scrie_document.py` il produce singur. Cand documentul salvat se aseaza langa unul din
+aceeasi familie, `act.docx` fata de `act_v2.docx`, comparatia se face imediat dupa
+salvare si iesirea spune unde a scris redline-ul. Familia se citeste ca in
+`cale_libera.py`, deci redline-urile nu ajung sa fie comparate intre ele.
+
+```bash
+python scripts/scrie_document.py --continut act.json --output act.docx
+#   act_v2.docx
+#   redline fata de act.docx: act_v2_redline_AMZ.docx
+
+python scripts/scrie_document.py --continut act.json --output act.docx --fara-redline
+```
+
+`creeaza_document.py` nu il produce, fiindca scrie un schelet, nu o versiune noua a unui
+act; o comparatie acolo ar iesi ca o stergere a intregului text precedent.
+
+Pe suprafetele care nu pot rula scripturi de skill, cheama `docx_redline` din serverul
+MCP `persona-adrian-zamfir`. In Claude Code, hook-ul `redline_obligatoriu.py` semnaleaza
+versiunea plecata fara redline, inclusiv livrarile facute prin copiere.
 
 ## Metadate
 
