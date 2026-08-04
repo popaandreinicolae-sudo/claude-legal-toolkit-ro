@@ -24,6 +24,13 @@ serverelor MCP, skill-urile, preferintele de cont si hook-urile de stil:
 python "$HOME/.claude/scripts/contradictii.py"
 ```
 
+Derapajul intre copiile configuratiei, adica intre ce ruleaza in Claude Code, ce e
+versionat in depozit, artefactul care pleaca in Desktop si arhiva de reinstalare:
+
+```bash
+python "$HOME/.claude/scripts/armonie_copii.py"
+```
+
 Suitele de regresie:
 
 ```bash
@@ -31,12 +38,15 @@ python "$HOME/.claude/scripts/selftest_citari.py"
 python "$HOME/.claude/scripts/selftest_suprascriere.py"
 python "$HOME/.claude/scripts/selftest_arhiva.py"
 python "$HOME/.claude/skills/docx-footnotes/scripts/selftest_pachet.py"
+python "D:/PYTHON DEVELOPMENT PROJ/persona-adrian-zamfir/tools/selftest.py"
 ```
+
+Proba de suprafata Desktop se face pe scripturile EXTRASE DIN ARHIVA, nu pe cele din
+`~/.claude`. Cele doua pot diferi oricand, iar ce conteaza acolo e ce pleaca in pachet.
 
 Apoi, pe rand: fiecare server MCP raspunde la un apel ieftin; fiecare hook inregistrat
 exista si e fail-open pe intrare stricata; hook-urile nu blocheaza munca legitima a
-celorlalte; skill-urile instalate si cele din repo nu au derapat unele fata de altele;
-arhiva de livrari si /revizuire functioneaza.
+celorlalte; arhiva de livrari si /revizuire functioneaza.
 
 ## Ce NU se face
 

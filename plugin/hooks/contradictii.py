@@ -82,13 +82,42 @@ def surse() -> list:
     return out
 
 
-def fraze(text: str) -> list:
-    """Frazele care par sa dea o instructiune."""
+# Linia de cod nu e o instructiune, chiar cand poarta un sir citat. Semnaturile de
+# functie din serverele MCP intrau in cautare si dadeau contradictii inexistente: pe
+# 4 august 2026, `autor: str = "AMZ Law Office"` a fost raportat drept regula impotriva
+# marcii, alaturi de cele doua reguli care o cer. O semnalare falsa costa mai mult decat
+# pare, fiindca invata cititorul sa treaca peste raport.
+COD = re.compile(
+    r"""(^\s*(def|class|import|from|return|if|elif|for|while|try|except|with|assert)\b)
+        | (->\s*(str|int|bool|dict|list|None))
+        | (\w+\s*:\s*(str|int|bool|dict|list)\s*=)
+        | (^\s*[@#])
+        | (\w+\s*=\s*[\[{(])
+        | (\)\s*:\s*$)
+    """,
+    re.VERBOSE,
+)
+
+
+def e_cod(fraza: str) -> bool:
+    return bool(COD.search(fraza))
+
+
+def fraze(text: str, cale: str = "") -> list:
+    """Frazele care par sa dea o instructiune.
+
+    Filtrul de cod se aplica numai surselor care SUNT cod, adica serverelor MCP si
+    hook-urilor. In Markdown, `#` deschide un titlu, iar titlurile din anti-ai-tone
+    poarta chiar regulile, „### REGULA 0: ZERO «LABEL COLON» FORMAT”. Un filtru aplicat
+    peste tot le-ar fi scos din cautare tocmai pe ele, adica exact familia de reguli in
+    care s-a gasit contradictia din 30 iulie 2026.
+    """
+    e_sursa_cod = cale.endswith(".py")
     brut = re.split(r"(?<=[.!?;])\s+|\n", text)
     out = []
     for f in brut:
         f = " ".join(f.split())
-        if 12 <= len(f) <= 400:
+        if 12 <= len(f) <= 400 and not (e_sursa_cod and e_cod(f)):
             out.append(f)
     return out
 
@@ -141,7 +170,7 @@ def cauta() -> list:
     """Grupurile de fraze care vorbesc despre acelasi termen cu polaritati diferite."""
     pe_termen: dict = {}
     for eticheta, cale, text in surse():
-        for f in fraze(text):
+        for f in fraze(text, cale):
             pol = polaritate(f)
             if pol in (None, "amestecat"):
                 continue
