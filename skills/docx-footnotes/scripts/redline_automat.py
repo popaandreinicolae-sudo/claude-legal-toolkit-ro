@@ -34,7 +34,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from cale_libera import _desparte, cale_libera
+from cale_libera import _desparte, cale_libera, VersiuneModificata
 
 AUTOR_REVIZII = "AMZ Law Office"
 
@@ -83,8 +83,16 @@ def produ(nou, vechi=None, autor: str = AUTOR_REVIZII, tacut: bool = False) -> d
                 "  redline nefacut: skill-ul docx-track-changes nu e instalat\n")
         return None
 
-    iesire = cale_libera(nou.with_name("%s_redline_AMZ%s" % (nou.stem, nou.suffix)),
-                         tacut=True)
+    # baza_verificata=True: redline-ul e un artefact de comparatie regenerat automat la
+    # fiecare versiune noua a actului, nu un document in care autorul scrie. O amprenta
+    # care nu mai corespunde n-ar trebui sa opreasca livrarea actului insusi.
+    try:
+        iesire = cale_libera(nou.with_name("%s_redline_AMZ%s" % (nou.stem, nou.suffix)),
+                             tacut=True, baza_verificata=True)
+    except VersiuneModificata as e:
+        if not tacut:
+            sys.stderr.write("  redline nefacut: %s\n" % e)
+        return None
     p = subprocess.run(
         [sys.executable, str(script), "apply", "--input", str(vechi),
          "--revised", str(nou), "--output", str(iesire), "--author", autor],

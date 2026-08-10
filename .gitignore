@@ -43,3 +43,6 @@ hooks/.dispozitiv_cache.json
 
 # Stare generata de legislatie-watcher, nu se versioneaza
 .watcher_seen.json
+
+# Amprenta de generare a cale_libera.py, per dosar de livrare, nu se versioneaza
+.cale_libera_stare.json

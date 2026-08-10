@@ -40,7 +40,7 @@ AICI = Path(__file__).resolve().parent
 SABLON = AICI.parent / "assets" / "sablon-casa.docx"
 
 sys.path.insert(0, str(AICI))
-from cale_libera import alege, adauga_optiune
+from cale_libera import alege, adauga_optiune, inregistreaza, VersiuneModificata
 import repara_pachet  # noqa: E402  spatiile de nume se verifica dupa fiecare salvare
 
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
@@ -147,12 +147,16 @@ def main(argv=None) -> int:
     core.author = args.autor
     core.last_modified_by = args.autor
 
-    args.output = alege(args.output, args.suprascrie)
+    try:
+        args.output = alege(args.output, args.suprascrie, baza_verificata=args.baza_verificata)
+    except VersiuneModificata as e:
+        sys.exit(str(e))
     args.output.parent.mkdir(parents=True, exist_ok=True)
     doc.save(str(args.output))
     # Word refuza un pachet in care Ignorable enumera prefixe nedeclarate, chiar daca
     # fisierul e XML valid si se deschide fara reproa in python-docx.
     repara_pachet.asigura(args.output)
+    inregistreaza(args.output)
     rezumat(doc, args.output, args.academic)
     return 0
 

@@ -451,6 +451,21 @@ La dubiu, intreaba care e documentul de referinta.
 Redline-ul se face fata de documentul de la care ai pornit, adica fata de al lui, ca sa vada
 exact ce ai adaugat peste munca lui.
 
+**De pe 10 august 2026, regula asta nu mai sta doar in text.** Pana atunci depindea sa-mi
+amintesc s-o citesc de fiecare data, si nu am facut-o, chiar in ziua in care a fost scrisa
+prima oara: un act pentru Elemental Iberica a fost regenerat de la v1 la v2 fara sa verific
+daca autorul deschisese v1 intre timp. `cale_libera.py` retine acum, langa fiecare fisier pe
+care il scrie, o amprenta, data modificarii si marimea, intr-un `.cale_libera_stare.json` din
+acelasi dosar. Cand cea mai recenta versiune de pe disc nu mai corespunde amprentei ei, sau
+cand n-are deloc amprenta, adica nu a fost scrisa de aceasta unealta, `scrie_document.py` si
+`creeaza_document.py` opresc executia cu un mesaj clar, in loc sa regenereze tacut. La fel
+`docx_scrie_act` pe Claude Desktop, care foloseste acelasi `cale_libera.py`.
+
+Cand vezi mesajul, deschide fisierul de pe disc si adu in continutul pe care il dai
+scriptului ce a schimbat autorul. Numai daca esti sigur ca nimic din versiunea de pe disc nu
+trebuie pastrat, cheama din nou cu `--baza-verificata` (`baza_verificata=True` la
+`docx_scrie_act`), ca sa sari peste verificare.
+
 ## Orice versiune noua pleaca insotita de redline
 
 Cand livrezi v2 a unui document pe care l-ai livrat deja, produci si fisierul cu modificari

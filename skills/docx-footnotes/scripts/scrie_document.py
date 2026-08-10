@@ -61,7 +61,7 @@ AICI = Path(__file__).resolve().parent
 SABLON = AICI.parent / "assets" / "sablon-casa.docx"
 
 sys.path.insert(0, str(AICI))
-from cale_libera import alege, adauga_optiune
+from cale_libera import alege, adauga_optiune, inregistreaza, VersiuneModificata
 import redline_automat  # noqa: E402  versiunea noua pleaca insotita de redline
 import repara_pachet  # noqa: E402  spatiile de nume se verifica dupa fiecare salvare
 
@@ -421,13 +421,19 @@ def main(argv=None) -> int:
     spec = json.loads(args.continut.read_text(encoding="utf-8"))
     doc, numarate = construieste(spec, args.autor)
 
-    args.output = alege(args.output, args.suprascrie)
+    try:
+        args.output = alege(args.output, args.suprascrie, baza_verificata=args.baza_verificata)
+    except VersiuneModificata as e:
+        sys.exit(str(e))
     args.output.parent.mkdir(parents=True, exist_ok=True)
     doc.save(str(args.output))
     # Word refuza un pachet in care Ignorable enumera prefixe nedeclarate, chiar daca
     # fisierul e XML valid. Serializarea poate reintroduce defectul, deci se verifica
     # dupa fiecare salvare, nu doar cand sablonul e suspect.
     repara_pachet.asigura(args.output)
+    # Amprenta se ia dupa reparatia de pachet, ca versiunea urmatoare sa verifice fata
+    # de bytes-ii chiar salvati pe disc, nu fata de o stare intermediara.
+    inregistreaza(args.output)
     # Regula lui: orice versiune noua vine insotita de redline, fara exceptie. Cand
     # documentul se aseaza langa unul din aceeasi familie, comparatia se face aici,
     # fiindca aici e singurul loc care stie sigur ca s-a scris o versiune noua.
