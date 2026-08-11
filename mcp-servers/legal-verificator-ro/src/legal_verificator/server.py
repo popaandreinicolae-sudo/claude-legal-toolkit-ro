@@ -1223,6 +1223,8 @@ ORDINEA SURSELOR pentru legislatie si jurisprudenta romaneasca:
 3. search_legislation, fetch_article_text, fetch_legal_url pentru legislatie.just.ro, ca a treia linie.
 Ordinea nu se sare. Sintact cazut inseamna Indaco, nu legislatie.just.ro.
 
+TEXTUL UNUI ARTICOL SE CITESTE DIN ACTUL DE LEGE INSUSI, nu dintr-o decizie, un RIL sau o adnotare de doctrina care il citeaza. Pe 10 august 2026 un articol din Codul de procedura civila a fost calificat drept gresit intr-un act al unui client plecand doar de la titlul unei legi modificatoare gasite prin cautare, fara sa se citeasca vreodata textul articolului insusi; concluzia s-a dovedit falsa cand articolul a fost gasit citat integral intr-o decizie CCR. O decizie sau o adnotare poate cita corect un text, dar poate la fel de usor cita o forma veche, un fragment trunchiat din context sau o eroare de transcriere, iar folosirea ei ca sursa unica trece verificarea drept incheiata cand nu e. Cauta actul cu sintact_verify_citation sau sintact_search, apoi cere textul articolului cu sintact_fetch_document direct din actul gasit (nro si versionId din rezultatul cautarii). Daca actul e prea mare pentru un singur raspuns, cauta in continuare articolul cerut in acel act, nu renunta la sursa primara pentru o mentiune gasita in alta parte. O decizie sau o adnotare care citeaza acelasi text serveste drept confirmare suplimentara, niciodata drept inlocuitor al actului.
+
 Deciziile Curtii Constitutionale au drum propriu: search_ccr_decision, search_ccr_by_subject, verify_ccr_citation, batch_verify_ccr, fetch_ccr_decision_text.
 
 RESTUL TOOLKIT-ULUI, cand intrebarea iese din perimetrul acesta:

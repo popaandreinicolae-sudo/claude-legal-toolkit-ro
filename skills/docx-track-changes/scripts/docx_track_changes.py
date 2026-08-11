@@ -943,6 +943,94 @@ def read_revised_texts(path):
 
 
 # --------------------------------------------------------------------------
+# Citate inserate: formatul de bloc retras si italic, aplicat la construire
+# --------------------------------------------------------------------------
+#
+# `docx_indreapta_forma`, din skill-ul docx-footnotes, indreapta dupa fapt un citat
+# scris pe stilul de corp, dar tool-ul acela citeste documentul cu python-docx, care nu
+# vede text aflat in interiorul unui <w:ins>: `Paragraph.runs` cauta doar <w:r> copil
+# direct al lui <w:p>, iar run-urile unui paragraf abia inserat stau sub <w:ins>. Pe
+# 10 august 2026, doua citate introduse asa, dupa o decizie ICCJ si o hotarare CEDO,
+# au iesit numerotate ca argument propriu, iar indreptarea de dupa nu le-a gasit
+# niciodata, verificat cu docx.Document, `p.text` intorcea sir gol. Corect e sa iasa
+# deja in forma buna, aici, unde paragraful chiar se construieste.
+
+_GHILIMELE_DESCHIDERE = ("„", "«", '"')
+_GHILIMELE_INCHIDERE = ("”", "»", '"')
+
+_INDENT_CITAT = "720"
+
+# Ordinea impusa de schema CT_PPr, atat cat conteaza pentru elementele pe care le
+# atingem: numPr dispare, ind se rescrie, restul, pStyle, spacing, jc, ramane din sursa.
+_ORDINE_PPR = (
+    "pStyle", "keepNext", "keepLines", "pageBreakBefore", "framePr", "widowControl",
+    "numPr", "suppressLineNumbers", "pBdr", "shd", "tabs", "suppressAutoHyphens",
+    "kinsoku", "wordWrap", "overflowPunct", "topLinePunct", "autoSpaceDE", "autoSpaceDN",
+    "bidi", "adjustRightInd", "snapToGrid", "spacing", "ind", "contextualSpacing",
+    "mirrorIndents", "suppressOverlap", "jc", "textDirection", "textAlignment",
+    "textboxTightWrap", "outlineLvl", "divId", "cnfStyle", "rPr", "sectPr", "pPrChange",
+)
+
+_ORDINE_RPR = (
+    "rStyle", "rFonts", "b", "bCs", "i", "iCs", "caps", "smallCaps", "strike",
+    "dstrike", "outline", "shadow", "emboss", "imprint", "noProof", "snapToGrid",
+    "vanish", "webHidden", "color", "spacing", "w", "kern", "position", "sz", "szCs",
+    "highlight", "u", "effect", "bdr", "shd", "fitText", "vertAlign", "rtl", "cs",
+    "em", "lang", "eastAsianLayout", "specVanish", "oMath",
+)
+
+
+def _arata_ca_citat(text: str) -> bool:
+    """Un text care incepe si se termina cu ghilimele: paragraful intreg e un citat,
+    nu doar contine unul pe undeva."""
+    t = (text or "").strip()
+    return bool(t) and t[0] in _GHILIMELE_DESCHIDERE and t[-1] in _GHILIMELE_INCHIDERE
+
+
+def _pPr_citat(sursa):
+    """pPr pentru un citat, bloc retras, fara numerotare, dar cu restul pPr-ului
+    sursei intact, `pStyle` inclus. Fontul si dimensiunea corpului vin din stil, nu
+    de pe run, iar un pPr construit de la zero, fara `pStyle`, cadea pe stilul
+    implicit al documentului, Times New Roman in loc de Georgia, exact cazul semnalat
+    de autor pe 10 august 2026, pe cele doua citate din decizia ICCJ si hotararea CEDO."""
+    sursa_ppr = sursa.find(w("pPr"))
+    ppr = deepcopy(sursa_ppr) if sursa_ppr is not None else etree.Element(w("pPr"))
+    for numpr in ppr.findall(w("numPr")):
+        ppr.remove(numpr)
+    for vechi in ppr.findall(w("ind")):
+        ppr.remove(vechi)
+    element = etree.Element(w("ind"))
+    element.set(w("left"), _INDENT_CITAT)
+    element.set(w("firstLine"), "0")
+    rang = _ORDINE_PPR.index("ind")
+    for copil in ppr:
+        eticheta = copil.tag.split("}")[-1]
+        if eticheta in _ORDINE_PPR and _ORDINE_PPR.index(eticheta) > rang:
+            copil.addprevious(element)
+            break
+    else:
+        ppr.append(element)
+    return ppr
+
+
+def _rpr_italic(rpr):
+    """Copia rpr-ului sursa, cu <w:i/> adaugat la locul lui in ordinea din schema."""
+    rpr = deepcopy(rpr) if rpr is not None else etree.Element(w("rPr"))
+    if rpr.find(w("i")) is not None:
+        return rpr
+    element = etree.Element(w("i"))
+    rang = _ORDINE_RPR.index("i")
+    for copil in rpr:
+        eticheta = copil.tag.split("}")[-1]
+        if eticheta in _ORDINE_RPR and _ORDINE_RPR.index(eticheta) > rang:
+            copil.addprevious(element)
+            break
+    else:
+        rpr.append(element)
+    return rpr
+
+
+# --------------------------------------------------------------------------
 # Motorul principal
 # --------------------------------------------------------------------------
 
@@ -978,17 +1066,23 @@ def apply_revisions(part: Part, new_texts, author, date, ids, stats, caps_styles
         sursa = _sursa_formei(anchor, precedent)
         for text in pending_inserts:
             new_p = etree.Element(w("p"))
-            ppr = sursa.find(w("pPr"))
-            if ppr is not None:
-                new_p.append(deepcopy(ppr))
-                sect = new_p.find(w("pPr") + "/" + w("sectPr"))
-                if sect is not None:
-                    new_p.find(w("pPr")).remove(sect)
+            e_citat = _arata_ca_citat(text)
+            if e_citat:
+                new_p.append(_pPr_citat(sursa))
+            else:
+                ppr = sursa.find(w("pPr"))
+                if ppr is not None:
+                    new_p.append(deepcopy(ppr))
+                    sect = new_p.find(w("pPr") + "/" + w("sectPr"))
+                    if sect is not None:
+                        new_p.find(w("pPr")).remove(sect)
             template_rpr = None
             for a in decompose(sursa):
                 if a.kind == "text":
                     template_rpr = a.rpr
                     break
+            if e_citat:
+                template_rpr = _rpr_italic(template_rpr)
             items = [Item("text", text=text, rpr=template_rpr, ctx=None, mode="ins")]
             rebuild_paragraph(new_p, items, author, date, ids, mark="ins")
             parent = anchor.getparent()

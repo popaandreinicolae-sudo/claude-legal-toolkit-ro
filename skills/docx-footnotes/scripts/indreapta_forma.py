@@ -101,6 +101,18 @@ def _e_citat(p) -> bool:
     return bool(rulate) and all(r.italic for r in rulate)
 
 
+_GHILIMELE_DESCHIDERE = ("„", "«", '"')
+_GHILIMELE_INCHIDERE = ("”", "»", '"')
+
+
+def _arata_ca_citat(text: str) -> bool:
+    """Un paragraf care incepe si se termina cu ghilimele, indiferent de stil sau de
+    italic. Prinde citatul introdus prin insertie de track-changes, care mosteneste
+    stilul paragrafului de ancora si iese numerotat, pe `Body cu nr de paragraf`, fara
+    sa treaca vreodata prin `Normal`, drumul pe care il verifica `_e_citat`."""
+    return bool(text) and text[0] in _GHILIMELE_DESCHIDERE and text[-1] in _GHILIMELE_INCHIDERE
+
+
 def _e_titlu(p) -> bool:
     return p.style.name.lower().startswith("heading") and bool(p.text.strip())
 
@@ -151,6 +163,25 @@ def _treci_pe_citat(p):
     _pune_in_pPr(ppr, ind, "ind")
 
 
+def _de_pe_corp_pe_citat(doc, p):
+    """Un paragraf deja numerotat pe stilul de corp, al carui text e chiar un citat:
+    scoate numerotarea, trece pe stilul simplu, aplica indentarea de citat retras si
+    italicul pe fiecare rand cu text, ca sa iasa in forma pe care o poarta un citat
+    scris de la inceput pe `Normal`."""
+    ppr = p._p.get_or_add_pPr()
+    for vechi in ppr.findall(qn("w:numPr")):
+        ppr.remove(vechi)
+    for vechi in ppr.findall(qn("w:pStyle")):
+        ppr.remove(vechi)
+    st = OxmlElement("w:pStyle")
+    st.set(qn("w:val"), doc.styles[STIL_SIMPLU].style_id)
+    _pune_in_pPr(ppr, st, "pStyle")
+    _treci_pe_citat(p)
+    for r in p.runs:
+        if r.text.strip():
+            r.italic = True
+
+
 def _rand_gol_inainte(doc, p):
     """Insereaza un paragraf gol inaintea titlului, pe stilul simplu, aliniat la margine."""
     gol = OxmlElement("w:p")
@@ -174,7 +205,16 @@ def indreapta(cale: Path, scrie: bool) -> dict:
     if num_id is not None:
         for p in doc.paragraphs:
             t = p.text.strip()
-            if not t or _e_titlu(p) or _numerotat(p):
+            if not t or _e_titlu(p):
+                continue
+            if _numerotat(p):
+                # Numerotat, dar textul e chiar un citat: scapat prin insertie de
+                # track-changes, care mosteneste stilul paragrafului de ancora in loc
+                # sa treaca prin `Normal`, singurul drum verificat mai jos.
+                if p.style.name == STIL_CORP and _arata_ca_citat(t):
+                    trecute_citat.append(t[:60])
+                    if scrie:
+                        _de_pe_corp_pe_citat(doc, p)
                 continue
             if p.style.name != STIL_SIMPLU:
                 continue
