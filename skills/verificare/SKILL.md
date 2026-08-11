@@ -3,7 +3,7 @@ name: verificare
 description: |
   Verificarea de armonie a toolkit-ului: piesele se calca intre ele? Invocata prin /verificare, sau la cuvintele "verifica armonia", "se bat cap in cap", "contradictii intre reguli", "merge totul impreuna", "audit de integrare". Ruleaza cautarea de contradictii intre toate locurile unde exista reguli, plus suitele de regresie si proba serverelor MCP. Raporteaza, nu repara: contradictiile le judeca autorul.
 version: 1.0
-last_updated: 2026-07-30
+last_updated: 2026-08-11
 ---
 
 # Verificarea de armonie
@@ -36,6 +36,8 @@ Suitele de regresie:
 ```bash
 python "$HOME/.claude/scripts/selftest_citari.py"
 python "$HOME/.claude/scripts/selftest_suprascriere.py"
+python "$HOME/.claude/scripts/selftest_stergere.py"
+python "$HOME/.claude/scripts/selftest_redline.py"
 python "$HOME/.claude/scripts/selftest_arhiva.py"
 python "$HOME/.claude/skills/docx-footnotes/scripts/selftest_pachet.py"
 python "D:/PYTHON DEVELOPMENT PROJ/persona-adrian-zamfir/tools/selftest.py"

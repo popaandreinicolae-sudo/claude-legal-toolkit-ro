@@ -67,7 +67,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "check_in_force",
-      description: "Verifică dacă un act UE (directivă, regulament, decizie) este ÎN VIGOARE sau ABROGAT. Esențial pentru a nu cita ca temei un act abrogat (ex: Directiva 2009/73/CE, abrogată, înlocuită de 2024/1788). Acceptă referință (2009/73/CE, 347/2013) sau CELEX brut.",
+      description: "Verifică dacă un act UE (directivă, regulament, decizie) este ÎN VIGOARE sau ABROGAT. Esențial pentru a nu cita ca temei un act abrogat (ex: Directiva 2009/73/CE, abrogată, înlocuită de 2024/1788). Acceptă referință (2009/73/CE, 347/2013) sau CELEX brut. Când referința nu precizează tipul actului, se probează directiva, regulamentul și decizia cu același număr, iar răspunsul spune ce s-a găsit; preferă totuși referința cu tip (\"Regulamentul 2016/679\"), fiindcă același număr și an pot fi purtate de acte diferite.",
       inputSchema: {
         type: "object" as const,
         properties: {

@@ -89,6 +89,23 @@ export class HudocClient {
     return parts.join(" AND ");
   }
 
+  // Interogarea pe numele cauzei: fiecare cuvant semnificativ primeste propriul
+  // prefix docname:. Verificat live (august 2026): "docname:Barbulescu AND
+  // docname:Romania" urca respectiva cauza pe primul loc (30 rezultate), in timp ce
+  // acelasi text cautat full-text o ingroapa sub cauzele recente care o citeaza
+  // (281 rezultate, ordonate de modelul de ranking dupa recenta). Forma
+  // docname:(W1 W2) NU functioneaza — degenereaza in ~200k rezultate. Indexul
+  // face diacritic folding in ambele sensuri, deci Barbulescu = Bărbulescu.
+  buildDocnameClause(freeText: string): string | null {
+    const STOP = new Set(["v", "c", "vs", "and", "of", "the", "la", "le", "contre", "against", "case", "affaire", "si", "et"]);
+    const words = freeText
+      .split(/\s+/)
+      .map(w => w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ""))
+      .filter(w => w.length >= 2 && !STOP.has(w.toLowerCase()));
+    if (words.length === 0) return null;
+    return words.map(w => `docname:${w}`).join(" AND ");
+  }
+
   buildExecQuery(params: {
     freeText?: string; respondent?: string; appno?: string;
     onlyFinalResolutions?: boolean; dateFrom?: string; dateTo?: string;

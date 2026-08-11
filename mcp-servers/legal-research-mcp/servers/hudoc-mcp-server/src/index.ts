@@ -11,7 +11,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
       name: "hudoc_search_cases",
-      description: "Caută cauze CEDO pe HUDOC. Suportă filtrare după articol, stat, importanță, violare, perioadă.",
+      description: "Caută cauze CEDO pe HUDOC. Interogarea se rulează întâi pe numele cauzei (docname), deci un nume ca 'Barbulescu' întoarce cauza însăși, nu cauzele recente care o citează; la zero rezultate cade înapoi pe full-text, pentru căutări tematice. Câmpul searched_by din răspuns arată ce pas a dat rezultatele. Suportă filtrare după articol, stat, importanță, violare, perioadă.",
       inputSchema: {
         type: "object" as const,
         properties: {
@@ -108,8 +108,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const a = args as Record<string, unknown>;
         const queryStr = (a.query as string | undefined) ?? "";
         const appNoMatch = queryStr.match(/^\s*(\d{1,5}\/\d{2,4})\s*$/);
-        const query = hudoc.buildQuery({
-          freeText: appNoMatch ? undefined : queryStr,
+        const baseParams = {
           appno: appNoMatch ? appNoMatch[1] : (a.application_number as string | undefined),
           article: a.article as string | undefined,
           respondent: a.respondent_country as string | undefined,
@@ -119,9 +118,24 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           importance: a.importance as string | undefined,
           collection: a.collection as string | undefined,
           language: a.language as string | undefined ?? "ENG",
-        });
-        const result = await hudoc.searchCases(query, Number(a.offset ?? 0), Number(a.limit ?? 20));
-        return { content: [{ type: "text", text: JSON.stringify({ results: result.results, total: result.total }, null, 2) }] };
+        };
+        // Doi pasi: intai pe numele cauzei (docname), fiindca full-text ingroapa
+        // cauza cautata sub cauzele recente care o citeaza; abia la zero rezultate
+        // interogarea cade inapoi pe full-text, pentru cautarile tematice.
+        const docnameClause = appNoMatch ? null : hudoc.buildDocnameClause(queryStr);
+        let searchedBy = appNoMatch ? "numar de cerere" : "text integral";
+        let result = { results: [] as Array<Record<string, unknown>>, total: 0 };
+        if (docnameClause) {
+          const nameQuery = hudoc.buildQuery({ ...baseParams, freeText: docnameClause });
+          result = await hudoc.searchCases(nameQuery, Number(a.offset ?? 0), Number(a.limit ?? 20));
+          searchedBy = "numele cauzei (docname)";
+        }
+        if (result.total === 0) {
+          const query = hudoc.buildQuery({ ...baseParams, freeText: appNoMatch ? undefined : queryStr });
+          result = await hudoc.searchCases(query, Number(a.offset ?? 0), Number(a.limit ?? 20));
+          searchedBy = appNoMatch ? "numar de cerere" : "text integral";
+        }
+        return { content: [{ type: "text", text: JSON.stringify({ results: result.results, total: result.total, searched_by: searchedBy }, null, 2) }] };
       }
 
       case "hudoc_get_judgment": {
