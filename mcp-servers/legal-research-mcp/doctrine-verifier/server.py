@@ -327,7 +327,9 @@ async def main():
     async with stdio_server() as streams:
         await app.run(streams[0], streams[1], _optiuni_cu_instructiuni(app))
 
-MCP_INSTRUCTIONS = """Verifica daca o lucrare de doctrina exista cu adevarat, prin Crossref, OpenAlex si Google Books. Foloseste-l inainte de a cita o carte, un articol sau un DOI intr-un act sau intr-o lucrare academica, fiindca titlurile plauzibile inventate sunt eroarea dominanta la citarea de doctrina. Harta completa de rutare a toolkit-ului sta in instructiunile serverului legal-verificator-ro."""
+MCP_INSTRUCTIONS = """Verifica daca o lucrare de doctrina exista cu adevarat, prin Crossref, OpenAlex si Google Books. Foloseste-l inainte de a cita o carte, un articol sau un DOI intr-un act sau intr-o lucrare academica, fiindca titlurile plauzibile inventate sunt eroarea dominanta la citarea de doctrina.
+
+DOCTRINA SE VERIFICA SI PE DATA, nu doar pe existenta. Prin doctrina se intelege orice material de autor: articol, carte, monografie, teza doctorala, revista, comentariu, curs. Un material scris in 2024 descrie legea din 2024, iar textul comentat poate fi intre timp modificat, completat, abrogat sau renumerotat. Inainte de a folosi o afirmatie din doctrina, in ordine: (1) stabileste data materialului, un material fara data e neverificat pentru starea actuala a dreptului; (2) adu legea la zi, pe ordinea surselor, sintact intai; (3) verifica in istoricul de consolidare daca textul comentat s-a schimbat intre data materialului si azi, inclusiv renumerotarea dupa republicare; (4) confrunta afirmatia cu legea la zi. Ce nu se mai confirma NU intra in document si nu primeste marcaj in text: se semnaleaza in conversatie ca materialul a fost gasit, dar ca sustinerea lui nu mai e valabila in legislatia la zi. Cand corectezi sau contrazici un autor, verifica intai daca el nu a scris corect pentru legea din vremea lui. Jurisprudenta nu intra sub aceasta regula. Harta completa de rutare a toolkit-ului sta in instructiunile serverului legal-verificator-ro."""
 
 
 def _optiuni_cu_instructiuni(app):
