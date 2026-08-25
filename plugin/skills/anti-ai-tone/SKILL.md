@@ -15,6 +15,28 @@ Textele generate de LLM-uri au un „accent" recunoscibil: vocabular limitat, en
 
 ---
 
+## EXCEPȚIE: TEXTUL DE CONTRACT
+
+Regulile de mai jos NU se aplică pe text de contract, adică pe corpul contractului, clauze,
+anexe contractuale și acte adiționale. Cerut de autor pe 25 august 2026, odată cu integrarea
+metodei de redactare în skill-ul contracte-ro.
+
+Contractul este actul părților, nu al cabinetului, și are genul lui. El cere tocmai ce
+penalizează skill-ul: titlu de articol urmat de două puncte („Art. 5 – Prețul"), definiții de
+forma „X înseamnă...", enumerări, alineate simetrice și repetarea identică a termenilor
+definiți. Un termen definit variat de dragul scorului nu mai este același termen, iar
+simetria alineatelor arată judecătorului că două obligații au același regim.
+
+Stratul rămâne întreg pe ce semnează cabinetul alături de contract: adresa de înaintare,
+opinia juridică, memoriul de revizuire, matricea de completitudine, mesajul către client.
+
+Excepția este pusă în cod, nu doar aici. Filtrul `e_text_de_contract` din `hook_common.py`
+decide după numele fișierului și după marcajele din text, iar `ai_tone_hook.py` și
+`quality_gate.py` îl consultă înainte de a măsura tonul. Proba stă în
+`selftest_ton_contract.py`.
+
+---
+
 ## REGULI ABSOLUTE — CE NU AI VOIE SĂ FACI
 
 ### REGULA 0: ZERO „LABEL COLON" FORMAT

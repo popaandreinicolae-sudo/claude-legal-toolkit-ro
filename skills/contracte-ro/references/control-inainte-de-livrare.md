@@ -59,5 +59,6 @@ fisierul si cu versiunile; aici se verifica textul.
 
 Verificarile de fisier raman cele din SKILL.md, pasul de livrare: obiectele incorporate
 scoase, verificarea de pachet, perechea clean plus track, redline fata de versiunea
-precedenta. Stratul anti-AI-tone se ruleaza pe actele semnate de cabinet care insotesc
-contractul, nu pe corpul lui.
+precedenta. Stratul anti-AI-tone nu se ruleaza pe text de contract; poarta de calitate raporteaza
+acolo `ton sarit (text de contract)`. El se ruleaza pe actele semnate de cabinet care
+insotesc contractul.

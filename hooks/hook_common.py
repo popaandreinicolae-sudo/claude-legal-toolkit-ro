@@ -13,6 +13,7 @@ existente NU sunt afectate.
 
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -161,3 +162,92 @@ def eligible(payload, min_words: int):
     if not text or len(text.split()) < min_words:
         return None, None
     return p, text
+
+
+# --------------------------------------------------------------------------
+# Contractul e actul partilor, nu al cabinetului, si are genul lui.
+#
+# Cerut de autor pe 25 august 2026, dupa integrarea metodei de redactare in
+# skill-ul contracte-ro: stratul anti-AI-tone NU se mai aplica pe text de
+# contract. Genul contractual cere tocmai ce penalizeaza stratul, titlu de
+# articol urmat de doua puncte, definitii de forma „X inseamna...", enumerari
+# si repetarea identica a termenilor definiti. Un termen definit variat de
+# dragul scorului nu mai e acelasi termen, iar simetria alineatelor arata
+# judecatorului ca doua obligatii au acelasi regim.
+#
+# Exceptia priveste TEXTUL DE CONTRACT: corpul, clauzele, anexele contractuale,
+# actele aditionale. Ce semneaza cabinetul alaturi de contract ramane sub strat,
+# adresa de inaintare, opinia, memoriul de revizuire, mesajul catre client.
+# De aceea filtrul se uita si dupa semne negative in numele fisierului.
+# --------------------------------------------------------------------------
+
+_CONTRACT_NUME = (
+    'contract', 'aditional', 'addendum', 'amendment', 'agreement',
+    'antecontract', 'promisiune', 'conventie', 'comodat', 'cesiune',
+    'locatiune', 'inchiriere', 'arenda', 'leasing', 'franciza', 'subcontract',
+    'antrepriza', 'tranzactie', 'novatie', 'fideiusiune', 'nda', 'msa', 'sow',
+    'dpa', 'spa', 'acord-cadru', 'acord cadru', 'clauzier',
+)
+
+# Numele care arata ca fisierul e text al cabinetului DESPRE un contract, nu
+# contractul insusi. Ele anuleaza semnul pozitiv de mai sus.
+_CONTRACT_NUME_NEGATIV = (
+    'opinie', 'memoriu', 'memo', 'nota', 'note', 'adresa', 'scrisoare', 'mesaj',
+    'email', 'raport', 'analiza', 'comentarii', 'observatii', 'matrice',
+    'rezumat', 'sinteza', 'instructiuni', 'ghid', 'checklist', 'plan',
+    'cerere', 'intampinare', 'concluzii', 'actiune', 'plangere', 'contestatie',
+    'sesizare', 'exceptie', 'apel', 'recurs', 'somatie', 'notificare',
+)
+
+# Terminatiile romanesti obisnuite, ca semnul negativ sa se caute pe cuvant
+# intreg. Cautat ca simplu subsir, 'nota' ar prinde 'notarial', iar un contract
+# de vanzare autentificat notarial ar iesi din exceptie exact pe dos.
+_SUFIXE = ('', 'a', 'e', 'i', 'ul', 'ului', 'le', 'lor', 'ei', 'ii', 'ile', 'ilor')
+
+_CONTRACT_MARCAJE = (
+    'prezentul contract', 'prezentul act aditional', 'partile contractante',
+    'in calitate de prestator', 'in calitate de beneficiar',
+    'in calitate de furnizor', 'in calitate de locator', 'in calitate de locatar',
+    'in calitate de comodant', 'in calitate de comodatar', 'in calitate de vanzator',
+    'in calitate de cumparator', 'in calitate de antreprenor', 'in calitate de client',
+    'partile convin', 'se obliga sa', 'prezentul acord', 'clauze finale',
+    'incheiat astazi', 'obiectul contractului', 'durata contractului',
+    'incetarea contractului', 'forta majora', 'this agreement', 'the parties agree',
+)
+
+
+def _fara_diacritice(s: str) -> str:
+    tabel = str.maketrans('ăâîșşțţĂÂÎȘŞȚŢ', 'aaissttAAISSTT')
+    return s.translate(tabel)
+
+
+def _semn_negativ(nume: str) -> bool:
+    for token in re.split('[^a-z0-9]+', nume):
+        if not token:
+            continue
+        for neg in _CONTRACT_NUME_NEGATIV:
+            if token == neg:
+                return True
+            if token.startswith(neg) and token[len(neg):] in _SUFIXE:
+                return True
+    return False
+
+
+def e_text_de_contract(p, text: str):
+    """Spune daca fisierul e text de contract, deci scutit de stratul anti-AI-tone.
+
+    Intoarce (True, motiv) sau (False, ""). Doua drumuri catre da, numele
+    fisierului si continutul, amandoua oprite de un semn negativ in nume.
+    """
+    nume = _fara_diacritice(Path(p).stem.lower()) if p is not None else ''
+    if _semn_negativ(nume):
+        return False, ""
+
+    if any(sem in nume for sem in _CONTRACT_NUME):
+        return True, "numele fisierului"
+
+    corp = _fara_diacritice((text or '')[:120000].lower())
+    gasite = {m for m in _CONTRACT_MARCAJE if m in corp}
+    if len(gasite) >= 4:
+        return True, "%d marcaje de contract in text" % len(gasite)
+    return False, ""

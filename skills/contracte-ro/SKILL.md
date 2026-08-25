@@ -103,11 +103,14 @@ cabinetului. Antetul, sigla si subsolul cabinetului merg doar pe actele semnate 
 avocat: adrese de inaintare, opinii, notificari in numele cabinetului. Aceeasi exceptie
 ca la actele asociatiilor.
 
-Exceptia merge si asupra limbii. Stratul anti-AI-tone nu se ruleaza pe corpul
-contractului, fiindca genul contractual cere tocmai ce penalizeaza stratul, titluri de
-articol urmate de doua puncte, definitii de forma „X inseamna...", enumerari si repetarea
-deliberata a termenilor definiti. Se ruleaza pe ce semneaza cabinetul, adresa de
-inaintare, opinia, memoriul de revizuire si mesajul catre client.
+Exceptia merge si asupra limbii. Stratul anti-AI-tone nu se aplica pe text de contract,
+corp, clauze, anexe contractuale si acte aditionale, fiindca genul contractual cere tocmai
+ce penalizeaza stratul, titluri de articol urmate de doua puncte, definitii de forma „X
+inseamna...", enumerari, alineate simetrice si termeni definiti repetati identic. Se
+ruleaza pe ce semneaza cabinetul, adresa de inaintare, opinia, memoriul de revizuire,
+matricea de completitudine si mesajul catre client. Regula e pusa in cod, in
+`e_text_de_contract` din `hook_common.py`, consultat de hook si de poarta de calitate, cu
+proba in `selftest_ton_contract.py`.
 
 ## Forma in Word
 

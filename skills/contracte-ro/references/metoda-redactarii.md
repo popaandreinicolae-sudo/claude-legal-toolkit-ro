@@ -74,12 +74,22 @@ exceptia cazului in care Partile convin in scris altfel...", „fara a aduce ati
 dintre urmatoarele situatii...", „constituie neexecutare esentiala...". Traducerile literale
 din contractele anglo-saxone se evita cand exista formulare romaneasca mai fireasca.
 
-Decis la 25 august 2026: stratul anti-AI-tone NU se ruleaza pe corpul contractului. Corpul
-e actul partilor si are genul lui, adica titlu de articol urmat de doua puncte, definitii de
-forma „X inseamna...", enumerari si repetarea deliberata a termenilor definiti, exact ce
-stratul penalizeaza. Anti-AI-tone se aplica pe ce semneaza cabinetul, adresa de inaintare,
-opinia, memoriul de revizuire si mesajul catre client. Aceeasi logica ca exceptia de forma
-din SKILL.md.
+Stratul anti-AI-tone nu se aplica pe text de contract, adica pe corp, clauze, anexe
+contractuale si acte aditionale. Regula e a autorului, data pe 25 august 2026. Contractul e
+actul partilor si are genul lui, titlu de articol urmat de doua puncte, definitii de forma
+„X inseamna...", enumerari, alineate simetrice si termeni definiti repetati identic, adica
+tocmai ce stratul penalizeaza. Un termen definit variat de dragul scorului nu mai e acelasi
+termen, iar simetria alineatelor arata judecatorului ca doua obligatii au acelasi regim.
+
+Stratul ramane intreg pe ce semneaza cabinetul alaturi de contract, adresa de inaintare,
+opinia, memoriul de revizuire, matricea de completitudine si mesajul catre client. Aceeasi
+logica ca exceptia de forma din SKILL.md.
+
+Exceptia sta si in cod, nu numai aici. Filtrul `e_text_de_contract` din `hook_common.py`
+decide dupa numele fisierului si dupa marcajele din text, iar `ai_tone_hook.py` si
+`quality_gate.py` il intreaba inainte de a masura tonul. Pe Desktop, aceeasi hotarare o iau
+`verifica_redactare` si `control_final` din serverul persona. Proba e in
+`selftest_ton_contract.py`.
 
 ## 5. Precizia formularii
 

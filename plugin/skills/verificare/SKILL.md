@@ -39,6 +39,7 @@ python "$HOME/.claude/scripts/selftest_suprascriere.py"
 python "$HOME/.claude/scripts/selftest_stergere.py"
 python "$HOME/.claude/scripts/selftest_redline.py"
 python "$HOME/.claude/scripts/selftest_arhiva.py"
+python "$HOME/.claude/scripts/selftest_ton_contract.py"
 python "$HOME/.claude/skills/docx-footnotes/scripts/selftest_pachet.py"
 python "D:/PYTHON DEVELOPMENT PROJ/persona-adrian-zamfir/tools/selftest.py"
 ```

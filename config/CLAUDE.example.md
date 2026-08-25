@@ -31,6 +31,15 @@ Aplica la orice output text peste 500 de cuvinte non-cod:
 8. Variaza lungimea propozitiilor.
 9. Pentru referinte juridice, marcheaza [NEVERIFICAT] daca nu ai sursa confirmata.
 10. Numarul de elemente din enumerari il decide continutul, nu un tipar fix.
+
+EXCEPTIE, TEXTUL DE CONTRACT. Regulile de mai sus nu se aplica pe corpul contractului,
+clauze, anexe contractuale si acte aditionale. Contractul e actul partilor si are genul lui,
+titlu de articol urmat de doua puncte, definitii de forma „X inseamna...", enumerari,
+alineate simetrice, termeni definiti repetati identic. Un termen definit variat de dragul
+scorului nu mai e acelasi termen. Stratul ramane intreg pe ce semneaza cabinetul alaturi de
+contract, adresa de inaintare, opinia, memoriul de revizuire, matricea de completitudine,
+mesajul catre client. Exceptia e pusa si in cod, in e_text_de_contract din hook_common.py,
+consultat de ai_tone_hook.py si de quality_gate.py, cu proba in selftest_ton_contract.py.
 </reguli_de_stil_obligatorii>
 
 <sistem_anti_halucinare>

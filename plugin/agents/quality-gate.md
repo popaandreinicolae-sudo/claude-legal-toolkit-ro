@@ -25,7 +25,11 @@ Acesta intoarce verdictul determinist (citari negasite/abrogate, surse-fantoma, 
 Inviti, dupa caz, reviewerii specializati:
 - `citation-verifier`, validare aprofundata a citarilor prin MCP-uri si verificare a atribuirii considerentelor;
 - `juridic-style-reviewer`, terminologie, format UB Drept, aparat critic;
-- `anti-ai-tone-reviewer`, audit stilistic.
+- `anti-ai-tone-reviewer`, audit stilistic. NU se invita pe text de contract: corpul
+  contractului, clauzele, anexele contractuale si actele aditionale sunt scutite de
+  strat din 25 august 2026, iar nucleul determinist raporteaza acolo `ton sarit (text
+  de contract)`. Pe actele semnate de cabinet care insotesc contractul se invita ca de
+  obicei.
 
 ### Pasul 3, verdict consolidat
 

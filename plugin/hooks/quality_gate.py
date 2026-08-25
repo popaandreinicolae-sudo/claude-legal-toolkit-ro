@@ -149,17 +149,28 @@ def run_gate(path: Path, network: bool = True) -> dict:
         except Exception as e:
             report["warnings"].append(f"verificarea atribuirilor indisponibila: {e}")
 
-    # 4. ton AI
+    # 4. ton AI. Textul de contract e scutit din 25 august 2026: contractul e actul
+    # partilor si are genul lui, iar stratul i-ar cere tocmai sa se strice. Vezi
+    # e_text_de_contract in hook_common.py.
+    contract, motiv_contract = False, ""
     try:
-        res = subprocess.run([sys.executable, str(DETECT), str(path), "--json"],
-                             capture_output=True, text=True, timeout=25, encoding="utf-8")
-        data = json.loads(res.stdout) if res.stdout else {}
-        score = data.get("naturalness_score", 100)
-        report["checks"]["ai_tone_score"] = score
-        if score < 70:
-            report["warnings"].append(f"ton AI: scor naturalete {score}/100 (<70), reaplica anti-ai-tone")
-    except Exception as e:
-        report["warnings"].append(f"ai-tone check indisponibil: {e}")
+        import hook_common
+        contract, motiv_contract = hook_common.e_text_de_contract(path, text)
+    except Exception:
+        pass
+    if contract:
+        report["checks"]["ai_tone_score"] = "sarit (text de contract, %s)" % motiv_contract
+    else:
+        try:
+            res = subprocess.run([sys.executable, str(DETECT), str(path), "--json"],
+                                 capture_output=True, text=True, timeout=25, encoding="utf-8")
+            data = json.loads(res.stdout) if res.stdout else {}
+            score = data.get("naturalness_score", 100)
+            report["checks"]["ai_tone_score"] = score
+            if score < 70:
+                report["warnings"].append(f"ton AI: scor naturalete {score}/100 (<70), reaplica anti-ai-tone")
+        except Exception as e:
+            report["warnings"].append(f"ai-tone check indisponibil: {e}")
 
     if report["blocking"]:
         report["verdict"] = "NO-GO"
@@ -192,8 +203,9 @@ def format_report(r: dict) -> str:
         lines += [f"  ! {w}" for w in r["warnings"][:12]]
         lines.append("")
     sc = r.get("checks", {})
-    lines.append(f"Sumar: citari {sc.get('citations', {}).get('total', 0)}, "
-                 f"ton {sc.get('ai_tone_score', '?')}/100.")
+    ton = sc.get('ai_tone_score', '?')
+    ton = ton if isinstance(ton, str) else f"{ton}/100"
+    lines.append(f"Sumar: citari {sc.get('citations', {}).get('total', 0)}, ton {ton}.")
     v = r.get("verdict")
     if v == "GO":
         lines.append("GO. Pentru livrare externa, ruleaza si reviewerii LLM (citation-verifier, juridic-style-reviewer).")

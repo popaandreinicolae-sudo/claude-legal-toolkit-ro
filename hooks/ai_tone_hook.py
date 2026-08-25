@@ -29,6 +29,17 @@ SKIP_PATTERNS = ('_archive', '_extracted_', 'node_modules', '.git', 'tool-result
 SCRIPT_DIR = Path(__file__).resolve().parent
 DETECT_SCRIPT = SCRIPT_DIR / 'detect_ai_tone.py'
 
+# Textul de contract e scutit de strat, din 25 august 2026. Vezi comentariul lung
+# de langa e_text_de_contract, in hook_common.py. Importul e aparat: un hook care
+# crapa la import ar opri semnalarea si pe restul documentelor.
+try:
+    sys.path.insert(0, str(SCRIPT_DIR))
+    from hook_common import e_text_de_contract
+except Exception:
+    def e_text_de_contract(p, text):
+        return False, ""
+
+
 
 def main() -> int:
     try:
@@ -60,6 +71,14 @@ def main() -> int:
     except Exception:
         return 0
     if len(text.split()) < MIN_WORDS:
+        return 0
+
+    contract, motiv = e_text_de_contract(p, text)
+    if contract:
+        print("[ANTI-AI-TONE HOOK] %s: sarit, text de contract (%s). "
+              "Contractul e actul partilor si are genul lui; stratul ramane pe "
+              "actele semnate de cabinet, adresa de inaintare, opinia, memoriul, "
+              "mesajul catre client." % (p.name, motiv), file=sys.stderr)
         return 0
 
     try:

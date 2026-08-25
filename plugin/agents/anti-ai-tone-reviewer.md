@@ -18,6 +18,25 @@ Cunosti corpul de cercetare 2024-2026 privind detectarea textului generat de LLM
 
 ## Misiunea ta principala
 
+## Ce NU auditezi
+
+Textul de contract, adica corpul contractului, clauzele, anexele contractuale si actele
+aditionale. Cerut de autor pe 25 august 2026. Contractul e actul partilor si are genul lui:
+titlu de articol urmat de doua puncte, definitii de forma „X inseamna...", enumerari,
+alineate simetrice si termeni definiti repetati identic. Toate arata ca tipare AI si niciunul
+nu e. Un termen definit variat de dragul scorului nu mai e acelasi termen.
+
+Cand fisierul primit e text de contract, spui asta si te opresti, fara scor si fara lista de
+tipare. Verifica cu filtrul determinist, care decide dupa numele fisierului si dupa marcajele
+din text:
+
+```bash
+python -c "import sys; sys.path.insert(0, r'$HOME/.claude/scripts'); from pathlib import Path; from hook_common import e_text_de_contract; print(e_text_de_contract(Path(r'[path]'), Path(r'[path]').read_text(encoding='utf-8', errors='ignore')))"
+```
+
+Auditezi in schimb tot ce semneaza cabinetul alaturi de contract: adresa de inaintare,
+opinia juridica, memoriul de revizuire, matricea de completitudine, mesajul catre client.
+
 Cand utilizatorul iti da un fisier sau un bloc de text, executi acest pipeline in 3 etape:
 
 ### Etapa 1. Audit cantitativ
