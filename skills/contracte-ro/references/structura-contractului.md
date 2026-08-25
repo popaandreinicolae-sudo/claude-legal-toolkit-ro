@@ -5,6 +5,13 @@ contractului. La revizuirea unui document primit e matricea de completitudine, a
 pe care o parcurgem tema cu tema si o livram autorului inaintea redline-ului, cu starea
 fiecarei teme in documentul primit: acoperita, acoperita partial, lipsa.
 
+De ce pleaca inaintea redline-ului. Clauza lipsa se vede si in redline, ca inserare, deci
+motivul nu e vizibilitatea. Matricea arata dintr-o privire toate temele deodata, inclusiv pe
+cele unde am cantarit si am decis sa nu intervin, ceea ce un redline nu spune niciodata, si
+ii lasa autorului alegerea temelor de ridicat inainte ca formularea sa ajunga pe hartie.
+Introducerea unei clauze intr-un draft al celeilalte parti reprezinta o miscare de
+negociere, iar retragerea ei mai tarziu se citeste drept concesie. Alegerea aceea e a lui.
+
 Ordinea nu se impune peste arhitectura etalonului familiei. Cand natura operatiunii cere
 altceva, se merge pe arhitectura familiei, iar lista de aici ramane control de
 completitudine. Familia 3 lucreaza pe acord plus conditii generale plus conditii speciale,

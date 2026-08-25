@@ -233,8 +233,8 @@ alt articol, se arata separat. Restul contractului nu se rescrie.
 
 ## 18. Formatul cererii
 
-Autorul poate trimite sarcina in forma asta; cand o trimite completata, tine loc de contract
-de sarcina si redactarea porneste fara confirmare separata.
+Autorul poate trimite sarcina in forma asta. Completata, ea umple contractul de sarcina cu
+date, dar nu tine loc de confirmarea lui.
 
     TIP DOCUMENT:              contract furnizare / vanzare / servicii / subcontractare etc.
     DREPT APLICABIL:           Romania / Bulgaria / altul
@@ -247,10 +247,11 @@ de sarcina si redactarea porneste fara confirmare separata.
     CERINTE SPECIALE:
     DOCUMENT EXISTENT:         daca exista, il ataseaza
 
-Redactarea nu se blocheaza cu intrebari pentru ce se poate rezolva cu placeholder sau cu o
-formulare flexibila. Se cere lamurire numai cand alegerea intre doua variante schimba
-fundamental regimul juridic sau distributia riscurilor. Elementele ramase de completat se
-semnaleaza scurt, la livrare.
+Intrebarea e libera, si e mai buna inaintea scrisului decat dupa; asa a cerut autorul pe 25
+august 2026. Se intreaba cand alegerea schimba regimul juridic sau distributia riscurilor,
+cand operatiunea admite doua constructii diferite si cand un gol se poate acoperi in mai
+multe feluri. Ce e vadit indiferent si se completeaza la final, un CUI, o adresa, un numar de
+cont, primeste placeholder si se semnaleaza scurt la livrare, fara sa opreasca lucrul.
 
 Autorul e avocat. Notiunile juridice elementare nu se explica, iar instructiunile lui
 punctuale trec inaintea regulilor generale din modul.

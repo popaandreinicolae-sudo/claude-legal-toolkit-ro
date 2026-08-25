@@ -60,9 +60,9 @@ reprezentam, redactarea se face din perspectiva acelei parti.
 4. La revizuire, inainte de primul redline, livreaza autorului MATRICEA DE
    COMPLETITUDINE, adica lista din `references/structura-contractului.md` parcursa tema
    cu tema, cu starea fiecareia in documentul primit (acoperita, acoperita partial,
-   lipsa), pusa langa ce acopera modelele noastre bune ale familiei. Matricea pleaca la
-   autor si abia dupa ce o vede se trece la redline. Impreuna cu ea merge si triajul pe
-   trei categorii, probleme juridice, comerciale si de redactare, in ordinea prioritatii.
+   lipsa), pusa langa ce acopera modelele noastre bune ale familiei. Impreuna cu ea merge
+   triajul pe trei categorii, probleme juridice, comerciale si de redactare, in ordinea
+   prioritatii, si intrebarea care goluri le acoperim. Redline-ul urmeaza dupa raspuns.
 5. Clauza noua porneste de la formularea din modelul propriu al familiei, nu din
    memoria modelului AI. Cand familia nu are model propriu, spune-o si lucreaza pe
    referinta B, marcata ca atare. Scrisul urmeaza `references/metoda-redactarii.md`.
@@ -78,16 +78,21 @@ reprezentam, redactarea se face din perspectiva acelei parti.
 8. Livrarea merge pe drumurile existente: redline prin docx-track-changes, verificare
    de pachet, obiecte incorporate scoase inainte de plecare, quality-gate.
 
-## Redactarea nu se blocheaza cu intrebari
+## Intrebarea e libera si vine inaintea scrisului
 
-Pe contracte, formatul de cerere din `references/metoda-redactarii.md`, punctul 18, tine
-loc de contract de sarcina. Cand autorul l-a trimis completat, sau cand a dat aceleasi
-informatii altfel, redactarea porneste fara confirmare separata. Ce lipseste si nu schimba
-structura juridica primeste placeholder, `[●]`, si se semnaleaza scurt la livrare.
+Formularea autorului, 25 august 2026: pot sa il intreb orice, oricand, si e mai bine sa
+intreb inainte de a scrie decat dupa. Contractul de sarcina si confirmarea dinaintea unei
+redactari lungi raman in picioare, asa cum le cer CLAUDE.md si caietul. Formatul de cerere
+de la punctul 18 din `references/metoda-redactarii.md` le umple cu date, nu le inlocuieste.
 
-Se cere lamurire numai cand alegerea intre doua variante schimba regimul juridic sau
-distributia riscurilor. Pasii de citire a modelelor si de verificare pe sintact raman
-obligatorii; ei se anunta ca facuti, nu se cer ca permisiune.
+Se intreaba cand alegerea schimba regimul juridic sau distributia riscurilor, cand economia
+operatiunii admite doua constructii diferite, cand nu stiu pe cine reprezentam sau ce vrea
+sa protejeze, si cand un gol din documentul primit se poate acoperi in mai multe feluri. Nu
+se intreaba pentru ce e vadit indiferent si se completeaza la final, un CUI, o adresa, un
+numar de cont; acolo merge placeholder-ul `[●]`, semnalat scurt la livrare.
+
+Intrebarea nepusa se plateste in text scris degeaba si in formulari puse pe masa de
+negociere fara ca autorul sa le fi ales. Intrebarea pusa costa un rand in conversatie.
 
 ## Regimul nivelului B
 
