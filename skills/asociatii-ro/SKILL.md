@@ -90,6 +90,36 @@ decurg din calitatea de membru sunt conditionate de inscrierea modificarii. Cons
 practica, un membru primit prin simpla hotarare interna, fara inscriere, nu are inca
 drepturile de membru.
 
+## Modelul preluat se verifica pe fond, clauza cu clauza
+
+Un statut plecat dintr-un dosar mai vechi poarta si viciile lui, iar reutilizarea nu mosteneste
+verificarea. Ordinea e: datezi documentul, aduci legea la zi pe sintact, confrunti clauza cu clauza
+contra legii de azi, si abia apoi deschizi istoricul de consolidare. Confruntarea pe fond se face
+intreaga si cand legea nu s-a schimbat, fiindca modelul poate fi viciat din nastere.
+
+Lista de nulitate din art. 6 alin. (2) si coerenta trimiterilor interne nu tin loc de acest pas. Pe
+24 august 2026 au trecut asa sapte atributii rezervate adunarii generale, mutate la consiliul
+director de un model preluat ca atare, printre care puterea de a exclude membri.
+
+Grila competentelor, rulata la fiecare loc unde "Consiliul Director" sta langa un verb de decizie:
+
+1. Art. 21 alin. (2) lit. a)-g) enumera competentele adunarii generale. Alin. (3) permite mutarea
+   unei singure competente, schimbarea sediului, si numai daca statutul o prevede, iar exceptia
+   scrisa pentru un caz arata ca restul raman ale adunarii. Lit. h) confirma sensul, statutul poate
+   ADAUGA atributii adunarii, nu ii poate lua.
+2. Consiliul director poate primi atributii noi prin statut, art. 24 alin. (2) lit. d). Intrebarea
+   nu e daca atributia e scrisa in lege, ci daca e una pe care legea o rezerva adunarii.
+3. Delegarea catre presedinte merge numai pe art. 24 alin. (2) lit. b) si d), potrivit art. 26.
+   Organigrama si politica de personal, lit. c), nu se deleaga.
+4. Primirea si pierderea calitatii de membru ASOCIAT sunt modificari de statut, HP ICCJ nr. 19/2023,
+   deci trec prin adunare si prin inscriere la judecatorie. Categoriile care nu sunt asociati raman
+   la consiliu.
+5. Destinatia bunurilor dupa lichidare e a adunarii, art. 21 alin. (2) lit. g). O clauza contrara
+   are sanctiune proprie in art. 60 alin. (3), instanta atribuie bunurile.
+
+Primul scop la infiintare e ca judecatoria sa accepte statutul, deci grila se ruleaza inainte de a
+spune ca actul e in regula.
+
 ## Fluxul de lucru
 
 1. Stabileste ramura si faza, cu intrebarile de mai sus.

@@ -52,10 +52,12 @@ preia numai inauntrul familiei din care s-a nascut.
 5. Clauza noua porneste de la formularea din modelul propriu al familiei, nu din
    memoria modelului AI. Cand familia nu are model propriu, spune-o si lucreaza pe
    referinta B, marcata ca atare.
-6. Verifica pe timp: fiecare model poarta anul lui. Clauzele sprijinite pe lege,
-   penalitati, dobanda legala, prelucrare de date, insolventa, consumatori, se
-   confrunta cu legea la zi pe sintact inainte de preluare, dupa aceeasi regula ca
-   doctrina (un model din 2020 descrie legea din 2020).
+6. Verifica modelul contra legii, in doua feluri diferite. Intai pe fond, clauza cu
+   clauza, contra legii de azi luate de pe sintact, si intreg chiar cand legea a stat
+   pe loc, fiindca modelul poate fi viciat din nastere. Apoi pe timp, in istoricul de
+   consolidare, fiindca fiecare model poarta anul lui si un model din 2020 descrie
+   legea din 2020. Clauzele expuse sunt penalitatile, dobanda legala, prelucrarea de
+   date, insolventa, consumatorii, plafoanele si termenele.
 7. Livrarea merge pe drumurile existente: redline prin docx-track-changes, verificare
    de pachet, obiecte incorporate scoase inainte de plecare, quality-gate.
 

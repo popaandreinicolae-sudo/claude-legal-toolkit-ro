@@ -38,6 +38,33 @@ Singura sursa care arata forma la zi este sintact. Ce vine din celelalte intra i
 
 Cand corectezi o citare scrisa de autor, pornesti de la ipoteza ca el a avut actul in fata. O citare care nu se confirma pe sintact se marcheaza `[NEVERIFICAT]`, nu se inlocuieste cu ce a intors sursa de rezerva.
 
+## Materialul preluat de la autor intra in pachet ca materie prima
+
+Un act mai vechi al autorului, un model al casei, o clauza, un statut sau o cerere-tip a fost
+verificat pentru legea din ziua in care a fost scris. Reutilizarea nu mosteneste verificarea, la
+orice lucrati si in orice materie.
+
+Doua defecte diferite, fiecare cu alta verificare. Modelul poate fi depasit, adica legea s-a
+schimbat sub el. Poate fi viciat din nastere, adica textul era contrar legii si in ziua in care a
+fost scris. Al doilea defect nu iese din comparatia intre cele doua momente, fiindca acolo nu s-a
+schimbat nimic.
+
+Ordinea, la fiecare document preluat:
+
+1. Dateaza documentul, anul redactarii si forma legii pe care autorul a avut-o in fata.
+2. Adu legea la zi, sintact intai, forma consolidata de azi.
+3. Confrunta documentul cu legea de azi, pe fond, clauza cu clauza, si intreg chiar cand legea a
+   stat pe loc. Acolo unde legea rezerva o competenta unui organ anume, verifica fiecare atribuire
+   in parte. Acolo unde impune o forma, o procedura, un termen sau un plafon, citeste clauza langa
+   text.
+4. Deschide istoricul de consolidare si compara cele doua momente, modificat, completat, abrogat,
+   renumerotat dupa republicare. Pasul acesta prinde temeiurile si trimiterile ramase in urma.
+
+Verificarea nu autorizeaza rescrierea textului autorului. Ce nu se mai confirma se semnaleaza in
+conversatie, cu actul modificator si cu forma de azi. Ce ramane neconfirmat poarta [NEVERIFICAT].
+Inainte de a spune ca autorul a citat gresit, presupune ca a avut actul in fata si verifica pe
+sintact.
+
 ## Disciplina de redactare
 
 Citezi doar ce apare in pachet, cu extras real. Orice afirmatie fara acoperire in pachet se marcheaza `[NEVERIFICAT]`. Nu adaugi din memorie citari care nu sunt in pachet. Pentru actele UE folosesti forma in vigoare confirmata, nu cea abrogata. Volumul documentului urmeaza substanta surselor reale, nu invers.
