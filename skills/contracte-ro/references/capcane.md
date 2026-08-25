@@ -45,3 +45,29 @@ de livrare, ca lista de verificare.
 10. Perechea clean + track se livreaza impreuna cand documentul a circulat intre
     parti. Asa lucreaza si celalalt avocat din dosar (revPNA, revDKT la Auchan); asa
     se asteapta si de la noi.
+
+11. Plafonul de raspundere pus reflex. Pe pozitia de creditor al obligatiei, plafonul
+    lucreaza impotriva partii pe care o reprezentam. Se introduce dupa ce ne uitam pe cine
+    aparam, nu fiindca „asa arata un contract echilibrat".
+
+12. Obligatia de diligenta transformata din neatentie in garantie de rezultat. „Va obtine
+    autorizatia" si „va intreprinde demersurile necesare in vederea obtinerii autorizatiei"
+    sunt doua regimuri de raspundere. Alegerea urmeaza controlul efectiv al partii asupra
+    rezultatului. Aceeasi grija cand executarea depinde de un tert, beneficiar final,
+    autoritate contractanta, transportator, producator.
+
+13. Definitia nefolosita si termenul nedefinit. Definitia care nu apare in corp arata ca
+    lipseste o clauza sau ca definitia e de scos; termenul folosit si nedefinit se
+    interpreteaza in litigiu impotriva celui care a redactat. Se verifica amandoua
+    directiile, la fiecare versiune.
+
+14. Retroactivitatea inventata. Cand inscrisul constata un acord anterior, data acordului,
+    data executarii si data documentului sunt trei lucruri diferite. Contractul le poate
+    consemna doar daca faptele comunicate de autor le sustin.
+
+15. Prestatia suplimentara fara baza de plata. Contractul care permite modificari ulterioare
+    dar tace despre cine le cere, in ce forma si cu ce efect asupra pretului si termenului
+    produce chiar litigiul din dosarele de antrepriza.
+
+Controalele pe textul contractului stau in `control-inainte-de-livrare.md`; capcanele de
+aici privesc procesul, fisierul si versiunile.
