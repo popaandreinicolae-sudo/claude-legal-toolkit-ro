@@ -103,10 +103,15 @@ trece drept formularea casei; anul lor se respecta la fel ca la modelele proprii
 
 ## Exceptia de stil
 
-Stilul de casa NU se aplica pe corpul contractului, care e actul partilor, nu al
-cabinetului. Antetul, sigla si subsolul cabinetului merg doar pe actele semnate de
-avocat: adrese de inaintare, opinii, notificari in numele cabinetului. Aceeasi exceptie
-ca la actele asociatiilor.
+CONTRACTELE NU SE FAC CU SIGLA AMZ, afara de cazul in care autorul cere expres. Regula lui,
+25 august 2026. Contractul e actul partilor, nu al cabinetului, deci nu poarta antetul cu
+sigla, nici subsolul cabinetului, nici numerotarea automata de paragraf a actelor de
+instanta; se numeroteaza pe articole si alineate. Antetul, sigla si subsolul merg doar pe
+actele semnate de avocat, adresa de inaintare, opinia, notificarea in numele cabinetului.
+
+Actele asociatiilor se judeca la fel, dar drumul lor difera si nu se copiaza de acolo:
+asociatii-ro trece documentele tot prin generator, cerandu-i sa nu aplice antetul, in timp
+ce contractul porneste din modelul familiei. Aceeasi socoteala, drumuri diferite.
 
 Exceptia merge si asupra limbii. Stratul anti-AI-tone nu se aplica pe text de contract,
 corp, clauze, anexe contractuale si acte aditionale, fiindca genul contractual cere tocmai

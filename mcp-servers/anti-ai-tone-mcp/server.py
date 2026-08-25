@@ -25,9 +25,54 @@ from mcp.types import Tool, TextContent
 
 SCRIPT_DIR = Path(__file__).resolve().parent.parent.parent / 'hooks'
 DETECT_SCRIPT = SCRIPT_DIR / 'detect_ai_tone.py'
-SKILL_PATH = Path(__file__).resolve().parent.parent.parent / 'skills' / 'anti-ai-tone.md'
+# Regulile se citesc din SKILL.md, forma vie a skill-ului. Fisierul plat de langa el,
+# skills/anti-ai-tone.md, a ramas de doua ori in urma: in iulie pe „reprezinta" si
+# „constituie", iar pe 25 august 2026 pe exceptia textului de contract. Nimic nu-l
+# actualizeaza si nimic altceva nu-l citeste, deci vechimea lui nu se vede nicaieri.
+_SKILLS_DIR = Path(__file__).resolve().parent.parent.parent / 'skills'
+SKILL_PATH = _SKILLS_DIR / 'anti-ai-tone' / 'SKILL.md'
+if not SKILL_PATH.exists():
+    SKILL_PATH = _SKILLS_DIR / 'anti-ai-tone.md'
 
 app = Server('anti-ai-tone')
+
+# Textul de contract e scutit de strat, cerut de autor pe 25 august 2026. Filtrul canonic
+# sta in hooks/hook_common.py si nu se rescrie aici; daca nu se poate importa, serverul
+# masoara ca inainte, adica se intoarce la comportamentul vechi, nu cade.
+sys.path.insert(0, str(SCRIPT_DIR))
+try:
+    from hook_common import e_text_de_contract as _e_contract, read_text as _citeste_doc
+except Exception:
+    def _e_contract(p, text):
+        return False, ""
+
+    def _citeste_doc(p):
+        return ""
+
+_MESAJ_CONTRACT = (
+    "SARIT: text de contract (%s).\n"
+    "Contractul e actul partilor si are genul lui, titlu de articol urmat de doua puncte, "
+    "definitii de forma „X inseamna...”, enumerari, alineate simetrice si termeni "
+    "definiti repetati identic. Stratul anti-AI-tone nu se aplica pe el din 25 august 2026. "
+    "Masoara in schimb actele semnate de cabinet care insotesc contractul: adresa de "
+    "inaintare, opinia, memoriul de revizuire, matricea de completitudine, mesajul catre "
+    "client."
+)
+
+
+def _sarim_contractul(text: str = "", file_path=None):
+    """Intoarce mesajul de sarit cand e text de contract, altfel None."""
+    try:
+        if file_path is not None:
+            p = Path(file_path)
+            continut = text or _citeste_doc(p)
+            contract, motiv = _e_contract(p, continut)
+        else:
+            contract, motiv = _e_contract(None, text)
+    except Exception:
+        return None
+    return (_MESAJ_CONTRACT % motiv) if contract else None
+
 
 # Importam detectorul IN-PROCESS (fara subprocess, fara temp file, fara al doilea
 # interpreter Python per apel). Asa apelurile sunt de ordinul milisecundelor si nu mai
@@ -362,12 +407,18 @@ async def list_tools() -> list[Tool]:
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     if name == 'check_ai_tone':
         text = arguments.get('text', '')
+        sarit = _sarim_contractul(text=text)
+        if sarit:
+            return [TextContent(type='text', text=sarit)]
         lang = arguments.get('language', 'auto')
         data = await asyncio.to_thread(run_detection, text, lang)
         return [TextContent(type='text', text=format_human_report(data))]
 
     if name == 'quick_score':
         text = arguments.get('text', '')
+        sarit = _sarim_contractul(text=text)
+        if sarit:
+            return [TextContent(type='text', text=sarit)]
         data = await asyncio.to_thread(run_detection, text, 'auto')
         if 'error' in data:
             return [TextContent(type='text', text=f"EROARE: {data['error']}")]
@@ -377,6 +428,9 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
     if name == 'suggest_fixes':
         text = arguments.get('text', '')
+        sarit = _sarim_contractul(text=text)
+        if sarit:
+            return [TextContent(type='text', text=sarit)]
         lang = arguments.get('language', 'auto')
         data = await asyncio.to_thread(run_detection, text, lang)
         return [TextContent(type='text', text=format_suggestions(data))]
@@ -386,6 +440,9 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         p = Path(file_path)
         if not p.exists():
             return [TextContent(type='text', text=f'EROARE: fisierul nu exista: {file_path}')]
+        sarit = _sarim_contractul(file_path=p)
+        if sarit:
+            return [TextContent(type='text', text=f'FILE: {p.name}\n' + sarit)]
         lang = arguments.get('language', 'auto')
         data = await asyncio.to_thread(run_detection_file, str(p), lang)
         report = f'FILE: {p.name}\n' + format_human_report(data)
@@ -573,7 +630,7 @@ async def main():
     async with stdio_server() as (read_stream, write_stream):
         await app.run(read_stream, write_stream, _optiuni_cu_instructiuni(app))
 
-MCP_INSTRUCTIONS = """Audit de stil pe text profesional romanesc, cu prag de naturalete masurat. Ruleaza-l pe orice text peste 500 de cuvinte care nu e cod, inainte de livrare. Regulile complete se iau cu get_skill_rules. Harta de rutare a toolkit-ului juridic sta in instructiunile serverului legal-verificator-ro."""
+MCP_INSTRUCTIONS = """Audit de stil pe text profesional romanesc, cu prag de naturalete masurat. Ruleaza-l pe orice text peste 500 de cuvinte care nu e cod, inainte de livrare, cu o singura exceptie: TEXTUL DE CONTRACT, adica corpul contractului, clauzele, anexele contractuale si actele aditionale, scutit din 25 august 2026 fiindca genul contractual cere tocmai ce penalizeaza stratul; acolo uneltele intorc SARIT. Stratul ramane intreg pe ce semneaza cabinetul alaturi de contract, adresa de inaintare, opinia, memoriul de revizuire, matricea de completitudine, mesajul catre client. Regulile complete se iau cu get_skill_rules. Harta de rutare a toolkit-ului juridic sta in instructiunile serverului legal-verificator-ro."""
 
 
 def _optiuni_cu_instructiuni(app):

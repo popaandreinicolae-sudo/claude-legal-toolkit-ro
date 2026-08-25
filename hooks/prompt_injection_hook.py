@@ -11,7 +11,7 @@ import json
 import sys
 
 REMINDER_RO = """[CONTEXT STIL — anti-AI tone v2.1, aplicat la text peste 500 cuvinte non-cod]
-Apozitii cu virgule, nu cu liniute (DOOM 3). Zero label-colon "**X:** desc". Zero "Nu X, ci Y". Diateza activa implicit. Zero hedging excesiv. Zero truisme. Copula simpla la perifrazele goale ("serveste drept", "functioneaza ca"); "reprezinta" si "constituie" se pastreaza, sunt registrul juridic al autorului, la fel "in absenta" si "in consecinta". Zero chatbot artifacts. Persoana I plural la opinie proprie. Anti-AI tone aplicat AUTOMAT, fara sa fie cerut."""
+Apozitii cu virgule, nu cu liniute (DOOM 3). Zero label-colon "**X:** desc". Zero "Nu X, ci Y". Diateza activa implicit. Zero hedging excesiv. Zero truisme. Copula simpla la perifrazele goale ("serveste drept", "functioneaza ca"); "reprezinta" si "constituie" se pastreaza, sunt registrul juridic al autorului, la fel "in absenta" si "in consecinta". Zero chatbot artifacts. Persoana I plural la opinie proprie. Anti-AI tone aplicat AUTOMAT, fara sa fie cerut. EXCEPTIE, TEXTUL DE CONTRACT: corpul contractului, clauzele, anexele contractuale si actele aditionale nu trec prin regulile astea, fiindca genul contractual le cere pe dos; stratul ramane pe ce semneaza cabinetul alaturi de contract."""
 
 
 def main() -> int:

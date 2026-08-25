@@ -1,3 +1,9 @@
+> **FISIER DEPASIT, PASTRAT NUMAI CA ISTORIC.** Forma vie a regulilor sta in
+> `skills/anti-ai-tone/SKILL.md`. Fisierul de fata a ramas in urma de doua ori: in iulie
+> 2026 pe „reprezinta" si „constituie", iar la 25 august 2026 pe exceptia textului de
+> contract. Din 25 august 2026 instrumentul `get_skill_rules` citeste din SKILL.md, nu de
+> aici. Nu adauga si nu corecta reguli in acest fisier.
+
 ---
 name: anti-ai-tone
 description: |

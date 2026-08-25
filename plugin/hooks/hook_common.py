@@ -179,32 +179,57 @@ def eligible(payload, min_words: int):
 # actele aditionale. Ce semneaza cabinetul alaturi de contract ramane sub strat,
 # adresa de inaintare, opinia, memoriul de revizuire, mesajul catre client.
 # De aceea filtrul se uita si dupa semne negative in numele fisierului.
+#
+# ACESTA E SINGURUL FILTRU. Serverul persona il copiaza cuvant cu cuvant, nu il
+# rescrie: pe 25 august existau doua variante timp de cateva ore, iar cea de a
+# doua, fara semne negative, scutea tocmai memoriul si opinia.
+#
+# Numele se sparge in cuvinte, nu se cauta ca subsir. Cautat ca subsir, „nda"
+# prindea fondator, suspendare, comanda si standard, iar „nota" prindea notarial.
 # --------------------------------------------------------------------------
 
-_CONTRACT_NUME = (
+# Cuvinte intregi, potrivite si cu terminatiile lor: contract, contractul,
+# contracte, contractare.
+_CONTRACT_CUVINTE = (
     'contract', 'aditional', 'addendum', 'amendment', 'agreement',
-    'antecontract', 'promisiune', 'conventie', 'comodat', 'cesiune',
-    'locatiune', 'inchiriere', 'arenda', 'leasing', 'franciza', 'subcontract',
-    'antrepriza', 'tranzactie', 'novatie', 'fideiusiune', 'nda', 'msa', 'sow',
-    'dpa', 'spa', 'acord-cadru', 'acord cadru', 'clauzier',
+    'antecontract', 'promisiune', 'conventie', 'comodat', 'subcomodat',
+    'cesiune', 'locatiune', 'inchiriere', 'arenda', 'leasing', 'franciza',
+    'subcontract', 'antrepriza', 'subantrepriza', 'tranzactie', 'novatie',
+    'fideiusiune', 'clauzier', 'clauze', 'anexa', 'contractual',
 )
 
+# Prescurtari, potrivite numai ca si cuvant intreg. Aici nu se accepta
+# terminatii: „spa" nu are voie sa prinda „spatiu", „sow" nu are voie sa prinda
+# „sowing".
+_CONTRACT_ACRONIME = ('nda', 'msa', 'sow', 'dpa', 'spa', 'sla', 'loi', 'mou')
+
+# Perechi de cuvinte care se citesc impreuna.
+_CONTRACT_EXPRESII = (' acord cadru ', ' acord de confidentialitate ',
+                      ' act aditional ', ' conditii generale ',
+                      ' conditii speciale ')
+
 # Numele care arata ca fisierul e text al cabinetului DESPRE un contract, nu
-# contractul insusi. Ele anuleaza semnul pozitiv de mai sus.
+# contractul insusi. Ele anuleaza semnul pozitiv de mai sus. Lista a crescut pe
+# 25 august, dupa ce filtrul a scutit 32 de fisiere reale, printre care un
+# articol publicat sub numele autorului si un advice catre client.
 _CONTRACT_NUME_NEGATIV = (
     'opinie', 'memoriu', 'memo', 'nota', 'note', 'adresa', 'scrisoare', 'mesaj',
     'email', 'raport', 'analiza', 'comentarii', 'observatii', 'matrice',
     'rezumat', 'sinteza', 'instructiuni', 'ghid', 'checklist', 'plan',
     'cerere', 'intampinare', 'concluzii', 'actiune', 'plangere', 'contestatie',
     'sesizare', 'exceptie', 'apel', 'recurs', 'somatie', 'notificare',
+    'articol', 'advice', 'comparatie', 'compare', 'comparativ', 'summary',
+    'sumar', 'propunere', 'tabel', 'procedura', 'prezentare', 'minuta',
+    'brief', 'chestionar', 'grila', 'studiu', 'referat', 'expunere',
+    'fundamentare', 'strategie', 'audit', 'due', 'diligence', 'memorandum',
 )
 
-# Terminatiile romanesti obisnuite, ca semnul negativ sa se caute pe cuvant
-# intreg. Cautat ca simplu subsir, 'nota' ar prinde 'notarial', iar un contract
-# de vanzare autentificat notarial ar iesi din exceptie exact pe dos.
-_SUFIXE = ('', 'a', 'e', 'i', 'ul', 'ului', 'le', 'lor', 'ei', 'ii', 'ile', 'ilor')
+# Terminatiile romanesti obisnuite, ca semnul sa se caute pe cuvant intreg.
+_SUFIXE = ('', 'a', 'e', 'i', 'ul', 'ului', 'le', 'lor', 'ei', 'ii', 'ile',
+           'ilor', 'uri', 'urile', 'urilor', 'are', 'ari', 'arii', 'ul')
 
 _CONTRACT_MARCAJE = (
+    # romana
     'prezentul contract', 'prezentul act aditional', 'partile contractante',
     'in calitate de prestator', 'in calitate de beneficiar',
     'in calitate de furnizor', 'in calitate de locator', 'in calitate de locatar',
@@ -212,7 +237,20 @@ _CONTRACT_MARCAJE = (
     'in calitate de cumparator', 'in calitate de antreprenor', 'in calitate de client',
     'partile convin', 'se obliga sa', 'prezentul acord', 'clauze finale',
     'incheiat astazi', 'obiectul contractului', 'durata contractului',
-    'incetarea contractului', 'forta majora', 'this agreement', 'the parties agree',
+    'incetarea contractului', 'forta majora', 'prezenta conventie',
+    'obligatiile partilor', 'legea aplicabila', 'in doua exemplare',
+    'partile semnatare', 'denuntare unilaterala', 'rezilierea contractului',
+    # engleza. Erau doua din douazeci si doua, la un prag de patru, deci un
+    # contract in engleza nu putea fi recunoscut niciodata dupa continut, iar
+    # contractul-ancora Geotehnikal, de 10.640 de cuvinte, iesea sub strat.
+    'this agreement', 'this contract', 'the parties agree', 'the parties hereto',
+    'in witness whereof', 'hereby agree', 'entire agreement', 'governing law',
+    'force majeure', 'terms and conditions', 'subject to the terms',
+    'shall be entitled', 'the supplier shall', 'the contractor shall',
+    'the client shall', 'the customer shall', 'the service provider shall',
+    'effective date', 'confidential information', 'termination of this',
+    'shall not be liable', 'each party shall', 'duly authorised representatives',
+    'duly authorized representatives',
 )
 
 
@@ -221,15 +259,16 @@ def _fara_diacritice(s: str) -> str:
     return s.translate(tabel)
 
 
-def _semn_negativ(nume: str) -> bool:
-    for token in re.split('[^a-z0-9]+', nume):
-        if not token:
-            continue
-        for neg in _CONTRACT_NUME_NEGATIV:
-            if token == neg:
-                return True
-            if token.startswith(neg) and token[len(neg):] in _SUFIXE:
-                return True
+def _cuvinte(nume: str) -> list:
+    return [t for t in re.split('[^a-z0-9]+', nume) if t]
+
+
+def _potriveste(token: str, radacini: tuple) -> bool:
+    for r in radacini:
+        if token == r:
+            return True
+        if token.startswith(r) and token[len(r):] in _SUFIXE:
+            return True
     return False
 
 
@@ -240,10 +279,17 @@ def e_text_de_contract(p, text: str):
     fisierului si continutul, amandoua oprite de un semn negativ in nume.
     """
     nume = _fara_diacritice(Path(p).stem.lower()) if p is not None else ''
-    if _semn_negativ(nume):
+    tokenuri = _cuvinte(nume)
+
+    if any(_potriveste(t, _CONTRACT_NUME_NEGATIV) for t in tokenuri):
         return False, ""
 
-    if any(sem in nume for sem in _CONTRACT_NUME):
+    if any(_potriveste(t, _CONTRACT_CUVINTE) for t in tokenuri):
+        return True, "numele fisierului"
+    if any(t in _CONTRACT_ACRONIME for t in tokenuri):
+        return True, "numele fisierului"
+    nume_spatiat = ' ' + ' '.join(tokenuri) + ' '
+    if any(e in nume_spatiat for e in _CONTRACT_EXPRESII):
         return True, "numele fisierului"
 
     corp = _fara_diacritice((text or '')[:120000].lower())

@@ -54,6 +54,24 @@ odata cu factura. Beneficiarul se obliga sa achite pretul la scadenta convenita.
 acord inlocuieste orice intelegere anterioara dintre parti privitoare la acelasi obiect.
 """
 
+CONTRACT_EN = """CONSULTANCY AGREEMENT
+
+This Agreement is made between the parties hereto on the effective date set out below.
+
+1. Scope of Services. The Contractor shall perform the investigations, design and project
+supervision services described in Annex 1. The Client shall provide access to the site.
+2. Fees. The fees are set out in Annex 2 and shall be invoiced monthly.
+3. Governing law. This contract shall be governed by the laws of Romania.
+4. Force majeure. Neither party shall be liable for any failure caused by force majeure.
+5. Confidential information shall not be disclosed to any third party.
+6. Termination of this Agreement may be effected upon thirty days written notice.
+7. Entire agreement. This Agreement constitutes the entire agreement between the parties
+and supersedes all prior arrangements, subject to the terms set out herein.
+
+In witness whereof the parties hereto have caused this Agreement to be executed by their
+duly authorised representatives. The parties agree that each party shall bear its own costs.
+"""
+
 MEMORIU = ("# Memoriu de revizuire\n\n"
            + "\n".join("- **Punct %d:** descrierea problemei gasite in clauza analizata." % i
                        for i in range(1, 12))
@@ -86,7 +104,16 @@ def main() -> int:
         ("Contract vanzare autentificat notarial.docx", ""),
         ("Act aditional nr. 3.docx", ""),
         ("CG_Tech_Labs-MSA-Master_Services_Agreement_rev.AZ_v3.docx", ""),
+        ("NDA mutual revAZ.docx", ""),
+        ("Acord cadru recrutare NEO AR.docx", ""),
+        ("Contract comodat_Calea Domneasca nr. 53.docx", ""),
         ("Draft fara nume lamuritor.docx", CONTRACT),
+        # Contractul in engleza trebuie sa treaca pe drumul continutului, fara
+        # ajutorul numelui. Inainte de 25 august erau doua marcaje englezesti din
+        # douazeci si doua, la un prag de patru, deci nu putea trece niciodata, iar
+        # contractul-ancora Geotehnikal, de 10.640 de cuvinte, iesea sub strat.
+        ("BG02 - 17.09.2025_rev_1_GeotehnikalS_revAZ.docx", CONTRACT_EN),
+        ("fisier fara nume lamuritor.docx", CONTRACT_EN),
     ]
     cazuri_nu = [
         ("Memoriu de revizuire contract Electrogrup.docx", ""),
@@ -95,6 +122,19 @@ def main() -> int:
         ("Matricea de completitudine DSV.md", ""),
         ("Notele scrise Transcarpat.docx", ""),
         ("Raport doctoral capitolul II.md", "text academic despre proportionalitate"),
+        # Produsul cabinetului DESPRE un contract ramane sub strat. Cazuri reale,
+        # din harta modelelor: pe 25 august filtrul scutea 32 de fisiere de felul
+        # asta, printre care un articol publicat sub numele autorului.
+        ("Articol Adrian-Mihai Zamfir & Adrian Cristea_Contractul de consultanta imobiliara.docx", ""),
+        ("Advice catre Porsche ref. forta majora si impreviziune in contract de locatiune.docx", ""),
+        ("Contract - Aquavas - comparatie.docx", ""),
+        ("Consulting Agreement Profi vs Template_compare.docx", ""),
+        # Cuvinte care contineau, ca subsir, o prescurtare din lista pozitiva:
+        # „nda" statea in fondator, suspendare, comanda si standard.
+        ("Fondator declaratie.docx", ""),
+        ("Act de suspendare executare.docx", ""),
+        ("Comanda ferma 4512.docx", ""),
+        ("Standard operating notes.docx", ""),
     ]
     for nume, corp in cazuri_da:
         ok, _ = e_text_de_contract(Path(nume), corp)
@@ -121,11 +161,11 @@ def main() -> int:
                  "memoriul prost scris e in continuare semnalat")
 
         print("3. poarta de calitate")
-        res = subprocess.run([sys.executable, str(POARTA), str(c), "--no-network"],
+        res = subprocess.run([sys.executable, str(POARTA), str(c)],
                              capture_output=True, text=True, timeout=120, encoding="utf-8")
         verifica("ton sarit (text de contract" in (res.stdout or ""),
                  "poarta raporteaza tonul ca sarit pe contract")
-        res = subprocess.run([sys.executable, str(POARTA), str(m), "--no-network"],
+        res = subprocess.run([sys.executable, str(POARTA), str(m)],
                              capture_output=True, text=True, timeout=120, encoding="utf-8")
         verifica("/100" in (res.stdout or ""),
                  "poarta masoara in continuare tonul pe memoriu")

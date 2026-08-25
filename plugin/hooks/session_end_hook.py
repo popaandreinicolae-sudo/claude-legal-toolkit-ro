@@ -51,7 +51,26 @@ def find_recent_files() -> list:
     return results[:50]
 
 
+# Textul de contract e scutit de strat din 25 august 2026. Vezi e_text_de_contract in
+# hook_common.py. Importul e aparat: hook-ul asta nu are voie sa cada la import.
+try:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from hook_common import e_text_de_contract, read_text as _citeste
+except Exception:
+    def e_text_de_contract(p, text):
+        return False, ""
+
+    def _citeste(p):
+        return ""
+
+
 def audit_file(path: Path) -> dict | None:
+    try:
+        contract, _motiv = e_text_de_contract(path, _citeste(path))
+        if contract:
+            return None
+    except Exception:
+        pass
     try:
         result = subprocess.run(
             [sys.executable, str(DETECT_SCRIPT), str(path), '--json'],
