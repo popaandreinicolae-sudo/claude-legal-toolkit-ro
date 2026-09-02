@@ -267,6 +267,26 @@ verificate de `scripts/selftest.py`.
 python ~/.claude/skills/docx-track-changes/scripts/selftest.py
 ```
 
+Din 2 septembrie 2026, garantia Accept All se masoara si pe fiecare livrare, nu doar in
+suita de regresie. Dupa ce scrie redlineul, `apply` simuleaza singur Accept All pe
+fisierul produs si il confrunta, paragraf cu paragraf, cu varianta ceruta. Cand cele doua
+nu coincid, comanda cade cu BLOCANT si nu lasa niciun fisier in urma. Aceeasi proba se
+poate cere si separat:
+
+```bash
+python ~/.claude/skills/docx-track-changes/scripts/docx_track_changes.py verify   --input redline.docx --revised varianta_ceruta.docx
+```
+
+Campul `accept_all_reproduce_varianta_ceruta` din raport spune rezultatul, iar `verify`
+cade cu cod 1 daca proba nu trece.
+
+Proba s-a nascut dintr-un defect real. Pana atunci, un bloc de paragrafe adaugat la
+FINALUL documentului iesea rasturnat in redline, fiindca inserarile de la coada se faceau
+toate imediat dupa aceeasi ancora, fiecare impingandu-l in jos pe cel dinainte. Pe
+1 septembrie 2026 au iesit asa cele opt note de subsol ale unui articol, iar tool-ul
+raporta cifre corecte, "10 paragrafe inserate", fiindca numara inserarile fara sa se uite
+la ordinea lor. Cifrele nu tin loc de citire.
+
 ## Accentul pe termeni definiti, ca revizie urmarita
 
 `docx_track_changes.py` marcheaza inserari si stergeri de text. Formatarea nu intra pe

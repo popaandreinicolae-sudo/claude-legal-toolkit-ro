@@ -1064,6 +1064,12 @@ def apply_revisions(part: Part, new_texts, author, date, ids, stats, caps_styles
     def flush_inserts(anchor, position, precedent=None):
         nonlocal pending_inserts
         sursa = _sursa_formei(anchor, precedent)
+        # Pozitia de inserare trebuie sa avanseze. Cu "before", indexul ancorei se
+        # recalculeaza la fiecare pas si ordinea iese corect. Cu "after", ancora ramane
+        # pe loc, deci fara contorul de mai jos fiecare paragraf nou l-ar impinge in jos
+        # pe cel dinainte, iar un bloc adaugat la finalul documentului ar iesi rasturnat.
+        # Pe 1 septembrie 2026 au iesit asa cele opt note de subsol ale unui articol.
+        _ordine = 0
         for text in pending_inserts:
             new_p = etree.Element(w("p"))
             e_citat = _arata_ca_citat(text)
@@ -1087,7 +1093,8 @@ def apply_revisions(part: Part, new_texts, author, date, ids, stats, caps_styles
             rebuild_paragraph(new_p, items, author, date, ids, mark="ins")
             parent = anchor.getparent()
             at = list(parent).index(anchor)
-            parent.insert(at if position == "before" else at + 1, new_p)
+            parent.insert(at if position == "before" else at + 1 + _ordine, new_p)
+            _ordine += 1
             stats["inserted_paragraphs"] += 1
         pending_inserts = []
 
@@ -1213,8 +1220,23 @@ def cmd_apply(args):
         apply_revisions(parts[name], new_texts, author, date, ids, stats, caps_styles)
 
     args.output = str(alege(args.output, args.suprascrie))
-    save_docx(args.input, args.output, parts)
-    obiecte_scoase = curata_obiecte_din(args.output)
+    # Scriem intai alaturi, sub un nume de lucru, ca proba de mai jos sa poata opri
+    # livrarea fara sa lase in urma un redline gresit.
+    _in_lucru = args.output + ".in-lucru"
+    save_docx(args.input, _in_lucru, parts)
+    obiecte_scoase = curata_obiecte_din(_in_lucru)
+
+    _nepotriviri = controleaza_accept_all(_in_lucru, revised.get("document"))
+    if _nepotriviri:
+        try:
+            _os.remove(_in_lucru)
+        except OSError:
+            pass
+        sys.stderr.write(
+            "BLOCANT: Accept All pe redline nu reproduce varianta ceruta, deci fisierul "
+            "nu a fost scris.\n" + "\n".join(_nepotriviri[:10]) + "\n")
+        return 1
+    _os.replace(_in_lucru, args.output)
 
     report = {
         "input": args.input,
@@ -1357,6 +1379,86 @@ def spatii_de_nume_rupte(cale):
     return rupte
 
 
+def text_dupa_accept_all(cale, parte="word/document.xml"):
+    """Textele de paragraf asa cum ar arata dupa Accept All in Word.
+
+    Logica e aceeasi cu cea din selftest.py, functia resolve(root, "accept"), ca proba de
+    livrare si suita de regresie sa masoare exact acelasi lucru: se arunca ce sta sub
+    <w:del>, se despacheteaza <w:ins>, iar paragraful ramas gol a carui marca de sfarsit
+    e stearsa dispare cu totul.
+    """
+    with zipfile.ZipFile(cale) as z:
+        try:
+            root = etree.fromstring(z.read(parte))
+        except KeyError:
+            return []
+    r = deepcopy(root)
+    for el in list(r.iter(w("del"))):
+        parent = el.getparent()
+        if parent is not None and parent.tag != w("rPr"):
+            parent.remove(el)
+    for el in list(r.iter(w("ins"))):
+        parent = el.getparent()
+        if parent is None or parent.tag == w("rPr"):
+            continue
+        idx = list(parent).index(el)
+        for c in reversed(list(el)):
+            parent.insert(idx, c)
+        parent.remove(el)
+    for dt in list(r.iter(w("delText"))):
+        dt.tag = w("t")
+    out = []
+    for p in r.iter(w("p")):
+        ppr = p.find(w("pPr"))
+        marcata = (ppr is not None and ppr.find(w("rPr")) is not None
+                   and ppr.find(w("rPr")).find(w("del")) is not None)
+        txt = "".join(t.text or "" for t in p.iter(w("t")))
+        if marcata and not txt.strip():
+            continue
+        out.append(txt)
+    return out
+
+
+def _cheie_comparare(text):
+    """Forma pe care o comparam: pliem scrierile care arata la fel, scoatem marcajul de
+    lista pe care Word il pune singur din w:numPr si ignoram diferenta de majuscule
+    venita din stil (w:caps). Ce ramane e structura, adica exact ce trebuie sa prinda
+    proba: ordinea, paragrafele lipsa, cele in plus si continutul schimbat."""
+    return fold_echivalente(scoate_marcaj_lista(text or "")).casefold().strip()
+
+
+def controleaza_accept_all(cale_redline, texte_cerute, parte="word/document.xml"):
+    """Confrunta redline-ul produs cu varianta ceruta. Intoarce lista nepotrivirilor.
+
+    Skill-ul promite ca Accept All reproduce varianta ceruta. Pana pe 1 septembrie 2026
+    promisiunea statea numai pe constructie, fara sa fie masurata pe rezultatul scris, iar
+    un bloc de opt note adaugat la finalul unui articol a iesit rasturnat in redline, cu
+    numarul corect de inserari raportat de tool. Cifrele nu tin loc de citire, deci se
+    citeste fisierul produs si se compara paragraf cu paragraf.
+    """
+    if not texte_cerute:
+        return []
+    obtinut = [_cheie_comparare(t) for t in text_dupa_accept_all(cale_redline, parte)]
+    cerut = [_cheie_comparare(t) for t in texte_cerute]
+    while obtinut and not obtinut[-1]:
+        obtinut.pop()
+    while cerut and not cerut[-1]:
+        cerut.pop()
+    obtinut = [t for t in obtinut if t]
+    cerut = [t for t in cerut if t]
+    nepotriviri = []
+    if len(obtinut) != len(cerut):
+        nepotriviri.append(
+            "  numar de paragrafe dupa Accept All: %d, in varianta ceruta: %d"
+            % (len(obtinut), len(cerut)))
+    for i, (a, b) in enumerate(zip(obtinut, cerut)):
+        if a != b:
+            nepotriviri.append(
+                "  paragraful %d difera\n     obtinut: %.90s\n     cerut  : %.90s"
+                % (i, a, b))
+    return nepotriviri
+
+
 def cmd_verify(args):
     parts = load_parts(args.input, list(PARTS.keys()))
     found = []
@@ -1381,6 +1483,9 @@ def cmd_verify(args):
     larg = revizii_prea_largi(parts)
     ns_rupte = spatii_de_nume_rupte(args.input)
     obiecte = obiecte_incorporate(args.input)
+    accept_all = None
+    if getattr(args, "revised", None):
+        accept_all = controleaza_accept_all(args.input, read_revised_texts(args.revised))
     summary = {
         "input": args.input,
         "total": len(found),
@@ -1390,9 +1495,16 @@ def cmd_verify(args):
         "redline_prea_larg": larg,
         "spatii_de_nume_rupte": ns_rupte,
         "obiecte_incorporate": obiecte,
+        "accept_all_reproduce_varianta_ceruta": (None if accept_all is None
+                                                 else not accept_all),
         "revisions": found if args.detail else found[:20],
     }
     print(json.dumps(summary, ensure_ascii=False, indent=2))
+    if accept_all:
+        sys.stderr.write(
+            "BLOCANT: Accept All pe acest redline nu reproduce varianta ceruta.\n"
+            + "\n".join(accept_all[:10]) + "\n")
+        return 1
     if obiecte:
         sys.stderr.write(
             "BLOCANT: documentul poarta %d obiect(e) incorporate, care se vad ca pictograme, "
@@ -1446,6 +1558,7 @@ def main(argv=None):
     p_apply.set_defaults(func=cmd_apply)
 
     p_ver = sub.add_parser("verify", help="raporteaza reviziile dintr-un .docx")
+    p_ver.add_argument("--revised", help="varianta ceruta, pentru proba Accept All")
     p_ver.add_argument("--input", required=True)
     p_ver.add_argument("--detail", action="store_true")
     p_ver.add_argument("--strict", action="store_true",
